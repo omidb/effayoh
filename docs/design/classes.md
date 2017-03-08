@@ -86,11 +86,10 @@ system under shock.
 
 ## Functionality
 
-1. Add node attribute (reserves).
-2. Add network initializer (MarchandModelCommodity).
-3. Add static model parameter.
-4. Add dynamic model parameter.
-5. Set update policy.
+1. Add network initializer (MarchandModelCommodity).
+2. Add static model parameter.
+3. Add dynamic model parameter.
+4. Set update policy.
 
 For the price you need to add a global computed attribute.
 
@@ -98,7 +97,65 @@ Possible optional functionality:
 
 1. add edge generator.
 
-## FAO Data Sheet Requirements
+## Extending the base Marchand model
+
+The `effayoh` library supports extending the base Marchand model in several
+ways.
+
+### Add parameters
+
+It is possible to add parameters to the model. These parameters can be
+static, as in the base model parameter 𝑓ᵣ, the fraction of actual reserves
+that are available to absorb shocks. Parameters can also be dynamic, as in a
+possible commodity price parameter that is a function of network state.
+
+#### Static parameters
+
+A static parameter can be added to the model by invoking the `add_static_param`
+method of a `MarchandModelBuilder` instance. `add_static_param` takes the name
+of the additional static parameter and its value as the formal parameters
+`name` and `val`. The value of the parameter is made accessible through its
+name in the namespace of the `update_policy` method. Thus after adding a new
+static parameter, `SUR_threshold` to represent the stocks-to-use ratio
+threshold for imposing trade restrictions, by:
+
+```python
+# builder is an instance of MarchandModelBuilder
+builder.add_static_param("SUR_threshold", 0.15)
+```
+
+The new static parameter can simply be accessed by its name in the body of the
+`update_policy` function passed to the MarchandModelBuilder instance's
+`set_update_policy' method as in:
+
+```python
+# Custom policy for updating the network.
+def update_policy(epicenter, shock, network):
+    # Foo
+    # ...
+
+    if (country.stocks/country.use) < SUR_threshold:
+        # Catastrophe!
+        pass
+
+    # Bar
+    # ...
+
+builder.set_update_policy(update_policy)
+```
+
+#### Dynamic parameters
+
+A dynamic parameter is a parameter whose value is a function of network state.
+This can be useful for adding a parameter for price to the model. The value of
+price can then vary as the production shock propagates through the global trade
+network. A dynamic parameter is added to the Marchand model by calling the
+`add_dynamic_param` method of a `MarchandModelBuilder` instance passing the
+name of the parameter and a function which takes as argument a `MarchandModel`
+instance and returns the value of the parameter determined by the state of the
+`MarchandModel` instance.
+
+# FAO Data Sheet Requirements
 
 The Marchand model requires information from the detailed trade matrix data
 sheet and the food balance data sheet.
