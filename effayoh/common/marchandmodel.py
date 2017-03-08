@@ -6,6 +6,8 @@
     Used by the MarchandModel as the basis of the trade network.
 """
 
+from effayoh import util
+
 
 # PEP 8 guidance on class docstrings:
 # The docstring for a class should summarize its behavior and list the public
@@ -109,33 +111,122 @@ class MarchandModel:
 class MarchandModelCommodity:
     pass
 
-
 class MarchandModelBuilder:
 
-    def setup_base_model(self):
-        pass
+
+    def __init__(self):
+        self.aggregate_countries = {}
+        self.network_initializers = []
+        self.static_params = {}
+        self.dynamic_params = {}
+
+
+    # Core functionality.
 
     def add_network_initializer(self, initializer):
-        pass
+        """
+        Add initializer to the collection of initializers.
+
+        Inititializers will be executed in the order in which they are
+        added to the builder. If an initializer, f, depends on a
+        previous initializer, g, then it is up to the client code to
+        add g to the builder before adding f.
+
+        """
+        if not callable(initializer):
+            msg = "initializer must be a function."
+            raise MarchandModelError(msg)
+
+        signature = inspect.signature(initializer)
+        if len(signature.parameters) != 1:
+            msg = "initializer must be a monadic function."
+            raise MarchandModelError(msg)
+
+        self.network_initializers.append(initializer)
+
 
     def add_static_param(self, name, val):
-        pass
+        """ Add a static parameter to the builder. """
+        self.static_params[name] = val
+
 
     def add_dynamic_param(self, name, func):
-        pass
+        """ Add a dynamic parameter to the builder. """
+        if not callable(func):
+            msg = "func must be a function."
+            raise MarchandModelError(msg)
 
-    def set_update_policy(self, policy):
-        pass
+        self.dynamic_params[name] = func
+
+
+    def set_iteration_policy(self, policy):
+        """ Set the iteration policy for the model. """
+        if not callable(policy):
+            msg = "policy must be a function."
+            raise MarchandModelError(msg)
+
+        self.policy = policy
+
 
     def build(self, base=True):
+        """ Return a built Marchand model. """
         model = MarchandModel()
+
         if base:
             self.setup_base_model()
-        # Add static parameters and dynamic parameters.
-        model.params = self.static_params + self.dynamic_params
+
+        self.country_initializer(model.network)
+
         # Execute initializers.
         for initializer in self.network_initializers:
-            initializer(model)
+            initializer(model.network)
+
+        # Add static parameters and dynamic parameters.
+        model.static_params = self.static_params
+        model.dynamic_params = self.dynamic_params
+
         # Set the update policy.
-        model.update_policy = self.update_policy
+        model.iteration_policy = self.iteration_policy
+
         return model
+
+
+    def country_initializer(self, network):
+        """ Creates the nodes for the countries in network. """
+        seen = set()
+        network.aggregated_codes = {}
+
+        for name, country_codes in self.aggregate_countries.items():
+            # Update the aggregated_codes dict of network which maps
+            # constituent country codes to their aggregates.
+            codes2name = {code: name for code in country_codes}
+            network.aggregated_codes.update(codes2name)
+
+            code_nodes = {code: {} for code in country_codes}
+            network.add_node(name, **code_nodes)
+            seen |= set(country_codes)
+            network
+
+        FAO_country_codes = util.get_FAO_country_codes()
+
+        for country_code in FAO_country_codes:
+            if country_code in seen:
+                continue
+            network.add_node(country_code)
+            seen.add(country_code)
+
+
+    # Convenience functions.
+
+    def setup_base_model(self):
+        """ Set up the base model. """
+        self.network_initializers[:0] = [MarchandModelBuilder.base_initializer]
+
+    def aggregate_country_codes(self, name, country_codes):
+        """ Add aggregate country to the builder. """
+        self.aggregate_countries[name] = country_codes
+
+
+    @staticmethod
+    def base_initializer(network):
+        pass
