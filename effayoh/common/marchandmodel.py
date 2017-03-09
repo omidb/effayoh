@@ -7,6 +7,7 @@
 """
 
 from effayoh import util
+from effayoh.network import Network
 
 
 # PEP 8 guidance on class docstrings:
@@ -16,7 +17,6 @@ from effayoh import util
 
 class MarchandModelError(Exception): pass
 
-
 class MarchandModel:
 
     """
@@ -24,89 +24,16 @@ class MarchandModel:
 
     The Marchand model is a model of the behavior of the global food
     trade network when a production shock occurs in one country.
-    Simplistic rules are applied to propagate the shock and distribute
-    the loss in production throughout the trade network.
-
-    The MarchandModel class implements the Marchand model and provides
-    methods and initialization parameters for selecting different
-    commodities, absorption and redistribution strategies, and
-    executing the model with the shock applied to different countries
-    and with varying magnitudes.
-
-
-    Public methods:
-
-        __getitem__:
-            Specify the model time period.
-
-        process_data:
-            Process the data to extract information for the
-            given commodity and time period.
-
-        shock:
-            Apply a shock to the model.
-
-        render:
-            Render the model to an image.
-
-        list_food_balance_sheet_items:
-            List the items defined in the food balance sheets
-            definitions and standards. These are available
-            commodities right out of the box.
-
-    Public attributes:
-
-        commodity:
-            The commodity of the underlying network.
-
+    Rules are applied to propagate the shock and distribute the loss in
+    production throughout the trade network.
 
     """
 
-    def __init__(self, commodity, years=None):
-        if isinstance(commodity, MarchandModelCommodity):
-            self.commodity = commodity
-        else:
-            self.commodity = MarchandModelCommodity(commodity)
-
-        if years is not None:
-            self.years = {year for year in years}
-
-        self._processed_data = False
-
-    def __getitem__(self, key):
-        """
-        Add the years represented by key to the years to process.
-        """
-        if self._processed_data:
-            message = """
-                The data for this model has already been processed.
-                If you would like to analyze another time period,
-                then instantiate another MarchandModel instance.
-            """
-            raise MarchandModelError(message)
-
-        if isinstance(key, int):
-            self.years.add(key)
-        elif isinstance(key, slice):
-            start = key.start
-            stop = key.stop
-            step = key.step if key.step else 1
-            self.years |= {year for year in range(start, stop, step)}
-        else:
-            raise TypeError("Expecting an int or slice object.")
-
-    def process_data(self):
-        pass
-
-    def shock(self, epicenter, magnitude, weighting):
-        pass
-
-    def render(self, title):
-        pass
-
-    def list_food_balance_sheet_items(self):
-        pass
-
+    def __init__(self):
+        self.network = Network()
+        self.static_params = None
+        self.dynamic_params = None
+        self.iteration_policy = None
 
 class MarchandModelCommodity:
     pass
@@ -119,9 +46,9 @@ class MarchandModelBuilder:
         self.network_initializers = []
         self.static_params = {}
         self.dynamic_params = {}
+        self.iteration_policy = None
+        self.years = []
 
-
-    # Core functionality.
 
     def add_network_initializer(self, initializer):
         """
@@ -194,7 +121,6 @@ class MarchandModelBuilder:
     def country_initializer(self, network):
         """ Creates the nodes for the countries in network. """
         seen = set()
-        network.aggregated_codes = {}
 
         for name, country_codes in self.aggregate_countries.items():
             # Update the aggregated_codes dict of network which maps
@@ -216,17 +142,52 @@ class MarchandModelBuilder:
             seen.add(country_code)
 
 
-    # Convenience functions.
-
     def setup_base_model(self):
         """ Set up the base model. """
-        self.network_initializers[:0] = [MarchandModelBuilder.base_initializer]
+        self.network_initializers[:0] = [self.base_initializer]
+        self.iteration_policy = MarchandModelBuilder.base_iteration_policy
 
     def aggregate_country_codes(self, name, country_codes):
         """ Add aggregate country to the builder. """
         self.aggregate_countries[name] = country_codes
 
+    def base_initializer(self, network):
+        """
+        The base initializer needs to know which items to grab in the
+        food balance sheet, which items to grab from the detailed trade
+        matrix sheet, which years to grab, and how to combine the items.
+        """
+        # Get the data from the UN FAOSTAT data sheets needed to
+        # initialize the network.
+        fbs_items = self.food_balance_sheet_items
+        fbs_data = util.get_food_balance_sheet_data(fbs_items, self.years)
+
+        dtm_items = self.detailed_trade_matrix_items
+        dtm_data = util.get_detailed_trade_matrix_data(dtm_items, self.years)
+
+
+    def set_years(self, years):
+        """ Set the years to use. """
+        self.years = years
+
+    def set_food_balance_sheet_items(self, items):
+        self.food_balance_sheet_items = items
+
+    def set_detailed_trade_matrix(self, items):
+        self.detailed_trade_matrix_items = items
+
+    def set_default_item(self, item):
+        if item.lower() == "wheat":
+            self.set_food_balance_sheet_items(["2511"])
+            self.set_detailed_trade_matrix([
+                "15", "16", "17", "18", "19",
+                "20", "21", "22", "23", "24",
+                "41", "110", "114", "115"
+            ])
+        else:
+            msg = "No item {item}".format(item=item)
+            raise MarchandModelError(msg)
 
     @staticmethod
-    def base_initializer(network):
+    def base_iteration_policy(model):
         pass
