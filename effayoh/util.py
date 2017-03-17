@@ -4,6 +4,9 @@ import csv
 EFFAYOH_DIR, _ = os.path.split(__file__)
 RESOURCES_DIR = os.path.join(EFFAYOH_DIR, "resources")
 FAOSTAT_DIR = os.path.join(RESOURCES_DIR, "faostat")
+USDA_DIR = os.path.join(RESOURCES_DIR, "usda")
+PSD_DIR = os.path.join(USDA_DIR, "psd")
+
 
 def get_FAO_country_codes():
     """ Return a list of the FAO country codes. """
@@ -16,6 +19,7 @@ def get_FAO_country_codes():
         codes = [row["Country Code"] for row in reader]
 
     return codes
+
 
 def get_food_balance_sheet_data(items, years):
     """
@@ -30,8 +34,8 @@ def get_food_balance_sheet_data(items, years):
     Country Code Dict -> Item Code Dict -> Year Dict -> value
 
     {
-        "Item Code": {
-            "Country Code": {
+        "Country Code": {
+            "Item Code": {
                 "Year": 1097,
                 ...
             }
@@ -51,23 +55,42 @@ def get_food_balance_sheet_data(items, years):
                              "FoodBalanceSheets_E_All_Data.csv")
 
     data = {}
-
-
     years_fields = [(year, "Y" + str(year)) for year in years]
 
     with open(data_path, encoding="latin1") as csv_file:
+
         reader = csv.DictReader(csv_file)
+
         for row in reader:
+
             item_code = row["Item Code"]
             if not item_code in items:
                 continue
+
+            # The row has one of the target item codes but it might not
+            # have a value for any of the years. We do the check here
+            # to avoid creating chains of dicts in data that ultimately
+            # have no values.
+            year_values = []
+            for year, field in years_fields:
+                try:
+                    value = float(row[field])
+                    year_values.append((year, value))
+                except ValueError as ve:
+                    pass
+
+            if not year_values:
+                continue
+
             country = row["Area Code"]
             item_dict = data.setdefault(country, {})
             year_dict = item_dict.setdefault(item_code, {})
-            for year, field in years_fields:
-                year_dict[year] = row[field]
+
+            for year, value in year_values:
+                year_dict[year] = value
 
     return data
+
 
 def get_detailed_trade_matrix_data(items, elements, years):
     """
@@ -118,6 +141,10 @@ def get_detailed_trade_matrix_data(items, elements, years):
             if not element_code in elements:
                 continue
 
+            # The row has one of the target item codes and element codes
+            # but it might not have a value for any of the years. We do
+            # the check here to avoid creating chains of dicts in data
+            # that ultimately have no values.
             year_values = []
             for year, field in years_fields:
                 try:
