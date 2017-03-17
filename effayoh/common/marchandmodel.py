@@ -141,11 +141,24 @@ class MarchandModelBuilder:
             network.add_node(country_code)
             seen.add(country_code)
 
-
     def setup_base_model(self):
         """ Set up the base model. """
         self.network_initializers[:0] = [self.base_initializer]
         self.iteration_policy = MarchandModelBuilder.base_iteration_policy
+
+        # Base model parameters. Values taken from the paper
+        # introducing the model.
+        #
+        # fc: fraction of residual shock absorbed by C if R is depleted
+        # fr: fraction of actual reserves that are available to absorb
+        #     shocks.
+        # fp: magnitude of initial shock as a fraction of the affected
+        #     country's P.
+        # alpha: minimum threshold for a shock to be propagated.
+        self.add_static_param("fc", 0.01)
+        self.add_static_param("fr", 0.5)
+        self.add_static_param("fp", 0.2)
+        self.add_static_param("alpha", 0.001)
 
     def aggregate_country_codes(self, name, country_codes):
         """ Add aggregate country to the builder. """
@@ -156,6 +169,14 @@ class MarchandModelBuilder:
         The base initializer needs to know which items to grab in the
         food balance sheet, which items to grab from the detailed trade
         matrix sheet, which years to grab, and how to combine the items.
+
+        Params:
+
+        network:
+            The network the Marchand model will manipulate. The nodes
+            of the network have been added for each country in the
+            model.
+
         """
         # Get the data from the UN FAOSTAT data sheets needed to
         # initialize the network.
@@ -163,8 +184,49 @@ class MarchandModelBuilder:
         fbs_data = util.get_food_balance_sheet_data(fbs_items, self.years)
 
         dtm_items = self.detailed_trade_matrix_items
-        dtm_data = util.get_detailed_trade_matrix_data(dtm_items, self.years)
+        dtm_elements = self.detailed_trade_matrix_elements
+        dtm_data = util.get_detailed_trade_matrix_data(dtm_items,
+                                                       dtm_elements,
+                                                       self.years)
 
+        # How should we handle combining items?
+        # We need to know whether or not the detailed trade matrix items
+        # are all the same unit?
+        #
+        # Should we have a hook here for a custom combination method?
+        #
+        # Or should we carry out a sensible policy for combining the
+        # data?
+        #
+        # For now let's go with carrying out a sensible policy. Let's
+        # assume that we can simply sum the items from the detailed
+        # trade matrix.
+
+        # Combine the detailed trade matrix data.
+        # Here we are creating the links between countries. So for each
+        # (Reporter Country Code, Partner Country Code, Element Code)
+        # triple we need to sum the value for all the items, and then
+        # set the corresponding link in the network.
+
+        for reporter_country, partner_countries in dtm_data.items():
+            for partner_country, element_codes in partner_countries.items():
+                for element_code, items in element_codes.items():
+                    total = 0
+                    for item, years in items.years():
+                        total += sum(years.values())
+                    total /= len(self.years)  # Normalize
+                    network.add_edge(reporter_country,
+                                     partner_country,
+                                     **{element_code: total})
+
+
+        # Use the food balance sheet data to annotate each node with
+        # its data.
+
+        for country, items in fbs_data.items():
+            for item, years in items.items():
+                total = sum(years.values()) / len(self.years)
+                network[country][item] = total
 
     def set_years(self, years):
         """ Set the years to use. """
@@ -173,13 +235,16 @@ class MarchandModelBuilder:
     def set_food_balance_sheet_items(self, items):
         self.food_balance_sheet_items = items
 
-    def set_detailed_trade_matrix(self, items):
+    def set_detailed_trade_matrix_items(self, items):
         self.detailed_trade_matrix_items = items
+
+    def set_detailed_trade_matrix_elements(self, elements):
+        self.detailed_trade_matrix_elements = elements
 
     def set_default_item(self, item):
         if item.lower() == "wheat":
             self.set_food_balance_sheet_items(["2511"])
-            self.set_detailed_trade_matrix([
+            self.set_detailed_trade_matrix_items([
                 "15", "16", "17", "18", "19",
                 "20", "21", "22", "23", "24",
                 "41", "110", "114", "115"
