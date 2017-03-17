@@ -81,15 +81,63 @@ system under shock.
 
 # Marchand Model Builder
 
-- global state variables.
-- node initialization variables.
+The Marchand Model Builder breaks construction of the Marchand Model down into
+5 components:
+
+1. Network initializers.
+3. Static model parameters.
+4. Dynamic model parameters.
+5. Iteration policy.
+
+## Network initializers
+
+A `network initializer` is a function that takes as argument a NetworkX graph
+and adds or modifies nodes and edges. The `country initializer` adds a node to
+the network for each country and sets up countries that consist in the
+aggregation of UN FAO codes. The Marchand model `base initializer` adds to each
+country in the network its production, reserves, export edges, domestic
+consumption, and net supply.
+
+### Country initializer
+
+In the simplest case where no FAO country code aggregations are declared, the
+`country initializer` simply creates a new node in the graph for each FAO
+country code. If an aggregation is defined, however, then the `country
+initializer` creates an `aggregate country` object which is added to the
+network in place of its constituent codes (ccs). The `aggregate country` object
+maintains the information associated with each of its ccs and aggregates that
+information when it is requested.
+
+### Base initializer
+
+The `base initializer` sets up the basic Marchand model, annotating each
+country with its production, reserves, exort edges, domestic consumption and
+net supply.
+
+## Static model parameters
+
+A `static model parameter` is an immutable value that is visible to every
+component of the model.
+
+## Dynamic model parameters
+
+A `dynamic model parameter` is a function of network state that is recomputed
+at the end of each simulation iteration and is visible to every component of
+the model.
+
+## Iteration policy
+
+The `iteration policy` is a function that takes as argument the network and
+applies some policy to the network. Iteration policies **must** be defined in
+their own module.
 
 ## Functionality
 
-1. Add network initializer (MarchandModelCommodity).
+1. Add network initializer.
 2. Add static model parameter.
 3. Add dynamic model parameter.
-4. Set update policy.
+4. Set iteration policy.
+5. Add country codes for aggregation.
 
 For the price you need to add a global computed attribute.
 
