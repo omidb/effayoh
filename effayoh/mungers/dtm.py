@@ -19,7 +19,8 @@ for this purpose.
 import os
 import csv
 
-from util import FAOSTAT_DIR
+from effayoh.util import FAOSTAT_DIR
+from effayoh.mungers import FAOCountry
 
 
 class DTMItem(tuple):
@@ -60,21 +61,6 @@ class DTMElement(tuple):
         else:
             obj = super().__new__(cls, tup)
             DTMElement.object_pool[obj] = obj
-            return obj
-
-
-class DTMCountry(tuple):
-
-    __slots__ = []
-    object_pool = {}
-
-    def __new__(cls, country, code):
-        tup = (country, code)
-        if tup in DTMCountry.object_pool:
-            return DTMCountry.object_pool[tup]
-        else:
-            obj = super().__new__(cls, tup)
-            DTMCountry.object_pool[obj] = obj
             return obj
 
 
@@ -230,12 +216,12 @@ class DTMMunger:
                 if not year_values:
                     continue
 
-                reporter_country = DTMCountry(
+                reporter_country = FAOCountry(
                     row["Reporter Countries"],
                     row["Reporter Country Code"]
                 )
 
-                partner_country = DTMCountry(
+                partner_country = FAOCountry(
                     row["Partner Countries"],
                     row["Partner Country Code"]
                 )

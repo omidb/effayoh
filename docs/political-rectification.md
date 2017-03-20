@@ -63,3 +63,60 @@ The political rectifier uses the mapping of data-source defined political
 entities to effayoh political entities to integrate data across different
 sources. The integrated data is apportioned to nodes in the network by
 resolving the type of the effayoh political entity.
+
+# Rectification instances
+
+## East Germany
+
+East Germany appears as "Germany Nl" in the FAOSTAT standards and definitions.
+The USDA database refers to East Germany as "German Democratic Republic."
+
+## West Germany
+
+West Germany is referenced as "Germany Fr by FAOSTAT and "Germany, Federal
+Republic of" by the USDA.
+
+The Wikipedia article on [UN
+M49](https://en.wikipedia.org/wiki/UN_M.49#cite_note-Germany-18) codes was used
+to resolve the FAOSTAT terms.
+
+# Excluded USDA Countries
+
+- GN: Gilbert and Ellice Islands. Population.
+- IO: British Ind. Ocean Territory. Population.
+- MB: Martinique. Population.
+- MQ: Midway Islands. Population.
+- MT: Malta and Gozp. Population.
+- MV: Maldive Islands. Population.
+- NA: Netherlands Antilles. Population.
+- NC: New Caledonia. Population.
+- NH: Vanuatu/New Hebrides. Population.
+- NQ: Trust Territory of the Pacific. Population.
+- NR: Nauru. Population.
+- SB: St. Pierre and Miquelon. Population.
+- SC: St. Kitts and Nevis. Population.
+- SE: Seychelles. Population.
+- SH: St. Helena (Br W Afr). Population.
+- ST: St. Lucia. Population.
+- T3: Africa, NEC. Unable to identify.
+- T8: Fernando Po. Now known as Bioko, population.
+- TK: Turks and Caicos Islands. Population.
+- TN: Tonga. Population.
+- TP: Sao Tome and Principe. Population.
+- VC: St. Vincent and the Grendines. Population.
+- VI: British Virgin Islands. Population.
+- VO: Virgin Islands of the U.S.. Population.
+- W7: British West Pacific Islands. Unable to identify.
+- WE: West Bank. No corresponding FAOSTAT entity.
+- WQ: Wake Island. Population.
+- WS: Western Samoa. Population.
+- X3: Canton and Enderbury Islands. Population.
+- X6: FrenchInd. Ocean Territory. Unable to identify.
+- X8: Southern Asia NEC. Unable to Identify.
+- Y1: Leeward-Windward Islands. Population.
+- Y2: French West Indies. Refers to several countries that do not break the
+  Population threshold.
+- Y3: Azores. Population.
+- Y7: Canary Islands. No corresponding FAOSTAT entity.
+- Y9: Madeira Islands. Population.
+- Z7: Other Pacific Islands, NEC. Unable to identify.

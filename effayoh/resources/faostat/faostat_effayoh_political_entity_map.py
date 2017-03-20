@@ -1,18 +1,5 @@
 from effayoh.rectification.political_entities import FAOPolitEnt
-
-class FAOCountry(tuple):
-
-    __slots__ = []
-    object_pool = {}
-
-    def __new__(cls, country, code):
-        tup = (country, code)
-        if tup in FAOCountry.object_pool:
-            return FAOCountry.object_pool[tup]
-        else:
-            obj = super().__new__(cls, tup)
-            FAOCountry.object_pool[obj] = obj
-            return obj
+from effayoh.mungers import FAOCountry
 
 map = {
     FAOCountry("Afganistan", "2"): FAOPolitEnt.AFGHANISTAN,
@@ -47,7 +34,6 @@ map = {
     FAOCountry("Bouvet Island", "31"): FAOPolitEnt.BOUVET_ISLAND,
     FAOCountry("Brazil", "21"): FAOPolitEnt.BRAZIL,
     FAOCountry("British Indian Ocean Territory", "24"): FAOPolitEnt.BRITISH_INDIAN_OCEAN_TERRITORY,
-    FAOCountry("British Virgin Islands", "239"): FAOPolitEnt.BRITISH_VIRGIN_ISLANDS,
     FAOCountry("Brunei Darussalam", "26"): FAOPolitEnt.BRUNEI_DARUSSALAM,
     FAOCountry("Bulgaria", "27"): FAOPolitEnt.BULGARIA,
     FAOCountry("Burkina Faso", "233"): FAOPolitEnt.BURKINA_FASO,
@@ -79,10 +65,11 @@ map = {
     FAOCountry("Croatia", "98"): FAOPolitEnt.CROATIA,
     FAOCountry("Cuba", "49"): FAOPolitEnt.CUBA,
     FAOCountry("Curacao", "279"): FAOPolitEnt.CURACAO,
+    FAOCountry("Cyprus", "50"): FAOPolitEnt.CYPRUS,
     FAOCountry("Czechia", "167"): FAOPolitEnt.CZECHIA,
     FAOCountry("Czechoslovakia", "51"): FAOPolitEnt.CZECHOSLOVAKIA,
     FAOCountry("Democratic People's Republic of Korea", "116"): FAOPolitEnt.NORTH_KOREA,
-    FAOCountry("Democratic Republic of the Congo", "250"): FAOPolitEnt.CONGO,
+    FAOCountry("Democratic Republic of the Congo", "250"): FAOPolitEnt.CONGO_DR,
     FAOCountry("Denmark", "54"): FAOPolitEnt.DENMARK,
     FAOCountry("Djibouti", "72"): FAOPolitEnt.DJIBOUTI,
     FAOCountry("Dominica", "55"): FAOPolitEnt.DOMINICA,
@@ -106,8 +93,8 @@ map = {
     FAOCountry("Gambia", "75"): FAOPolitEnt.GAMBIA,
     FAOCountry("Georgia", "73"): FAOPolitEnt.GEORGIA,
     FAOCountry("Germany", "79"): FAOPolitEnt.GERMANY,
-    FAOCountry("Germany Fr", "78"): FAOPolitEnt.GERMANY_FR,
-    FAOCountry("Germany Nl", "77"): FAOPolitEnt.GERMANY_NL,
+    FAOCountry("Germany Fr", "78"): FAOPolitEnt.WEST_GERMANY,
+    FAOCountry("Germany Nl", "77"): FAOPolitEnt.EAST_GERMANY,
     FAOCountry("Ghana", "81"): FAOPolitEnt.GHANA,
     FAOCountry("Gibraltar", "82"): FAOPolitEnt.GIBRALTAR,
     FAOCountry("Greece", "84"): FAOPolitEnt.GREECE,
@@ -186,6 +173,9 @@ map = {
     FAOCountry("Saudi Arabia", "194"): FAOPolitEnt.SAUDI_ARABIA,
     FAOCountry("Senegal", "195"): FAOPolitEnt.SENEGAL,
     FAOCountry("Serbia", "272"): FAOPolitEnt.SERBIA,
+    # We omit 286 Serbia (exc Kosovo) because it does not appear to have
+    # an M49 country code.
+    FAOCountry("Serbia and Montenegro", "186"): FAOPolitEnt.SERBIA_AND_MONTENEGRO,
     FAOCountry("Sierra Leone", "197"): FAOPolitEnt.SIERRA_LEONE,
     FAOCountry("Singapore", "200"): FAOPolitEnt.SINGAPORE,
     FAOCountry("Slovakia", "199"): FAOPolitEnt.SLOVAKIA,
@@ -224,8 +214,8 @@ map = {
     FAOCountry("Venezuela (Bolivarian Republic of)", "236"): FAOPolitEnt.VENEZUELA,
     FAOCountry("Viet Nam", "237"): FAOPolitEnt.VIETNAM,
     FAOCountry("Yemen", "249"): FAOPolitEnt.YEMEN,
-    FAOCountry("Yemen Ar Rp", "246"): FAOPolitEnt.YEMEN_AR_RP,
-    FAOCountry("Yemen Dem", "247"): FAOPolitEnt.YEMEN_DEM,
+    FAOCountry("Yemen Ar Rp", "246"): FAOPolitEnt.NORTH_YEMEN,
+    FAOCountry("Yemen Dem", "247"): FAOPolitEnt.SOUTH_YEMEN,
     FAOCountry("Yugoslav SFR", "248"): FAOPolitEnt.YUGOSLAVIA,
     FAOCountry("Zambia", "251"): FAOPolitEnt.ZAMBIA,
     FAOCountry("Zimbabwe", "181"): FAOPolitEnt.ZIMBABWE
