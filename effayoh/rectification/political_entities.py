@@ -241,7 +241,6 @@ class FAOPolitEnt(enum.Enum):
     # present-day: Chad, Central African Republic, Cameroon, the
     # Republic of Congo and Gabon.
     FRENCH_EQUATORIAL_AFRICA = "French Equatorial Africa"
-    USSR = "Union of Soviet Socialist Republics"
     # Well this is very interesting to find in the USDA PSD countries.
     NORTH_VIETNAM = "North Vietnam"
     SOUTH_VIETNAM = "South Vietnam"
