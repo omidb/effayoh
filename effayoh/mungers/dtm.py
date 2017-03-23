@@ -42,10 +42,10 @@ class DTMItemGroup(frozenset):
 
     __slots__ = ["attr_name"]
 
-    def __new__(cls, items, attr_name):
+    def __new__(cls, attr_name, items):
         return super().__new__(cls, items)
 
-    def __init__(self, items, attr_name):
+    def __init__(self, attr_name, items):
         self.attr_name = attr_name
 
 
@@ -74,7 +74,7 @@ class DTMMunger:
         self.years = None
         self.items = set()
         self.elements = set()
-        self.item_elem_attrs = set()
+        self.item_elem_edges = set()
         self.item_element_conversions = {}
         self.element_items_groups = set()
         self.element_items_group_conversions = {}
@@ -90,8 +90,8 @@ class DTMMunger:
         for item in items:
             self.items.add(item)
 
-    def add_item_elem_attr(self, item, element):
-        self.item_elem_attrs.add((item, element))
+    def add_item_elem_edge(self, item, element):
+        self.item_elem_edges.add((item, element))
 
     def set_item_element_conversion(self, item, element, conversion):
         if not isinstance(item, DTMItem):
@@ -113,13 +113,44 @@ class DTMMunger:
                                            element,
                                            items_group,
                                            conversion):
+        """
+        Store an element-items group conversion function.
+
+        This function is used to customize how the values for each item
+        in the group are combined.
+
+        Parameters:
+        -----------
+        element : DTMElement
+            The DTMElement that is used to group the items in
+            items_group. Data will be extracted from rows in the
+            detailed trade matrix that match this element and any item
+            in items_group.
+        items_group: DTMItemGroup
+            The DTMItemGroup that contains the items being grouped.
+        conversion: callable
+            A callable that takes as argument a dict mapping each item
+            in items_group to its value in the detailed trade matrix
+            and returns the value resulting from the custom combination
+            behavior, e.g. converting different cereals tonnes to
+            calories and summing.
+
+        Raises:
+        -------
+        TypeError
+            If element is not a DTMElement.
+            If items_group is not a DTMItemGroup.
+            If conversion is not callable.
+
+        """
         if not isinstance(element, DTMElement):
             raise TypeError("element must be a DTMElement")
         if not isinstance(items_group, DTMItemGroup):
             raise TypeError("items_group must be a DTMItemGroup")
         if not callable(conversion):
             raise TypeError("conversion must be a callable")
-        self.item_group_conversions[(element, items_group)] = conversion
+        key = (element, items_group)
+        self.element_items_group_conversions[key] = conversion
 
     def munge(self):
         """
@@ -132,6 +163,8 @@ class DTMMunger:
             for partner_country, elements in partners.items():
                 for element, items in elements.items():
                     for item, years in items.items():
+                        # Items in element-items groups will also be
+                        # processed to obtain value here.
                         mean = sum(years.values()) / len(self.years)
                         func = self.item_element_conversions.get(
                             (item, element),
@@ -140,7 +173,7 @@ class DTMMunger:
                         value = func(mean)
                         items[item] = value
 
-                        if (item, element) in self.item_elem_attrs:
+                        if (item, element) in self.item_elem_edges:
                             self.set_network_item_element_edge(
                                 reporter_country,
                                 partner_country,
