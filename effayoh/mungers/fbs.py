@@ -4,7 +4,8 @@ Provide the FBSMunger class for munging the Food Balance Sheet.
 import os
 import csv
 
-from util import FAOSTAT_DIR
+from effayoh.util import FAOSTAT_DIR
+from effayoh.mungers import FAOCountry
 
 
 class FBSItem(tuple):
@@ -24,13 +25,8 @@ class FBSItem(tuple):
 
 class FBSItemGroup(frozenset):
 
-    __slots__ = ["attr_name"]
-
-    def __new__(cls, items, attr_name):
+    def __new__(cls, items):
         return super().__new__(cls, items)
-
-    def __init__(self, items, attr_name):
-        self.attr_name = attr_name
 
 
 class FBSElement(tuple):
@@ -50,12 +46,29 @@ class FBSElement(tuple):
 
 class FBSElementGroup(frozenset):
 
-    __slots__ = ["attr_name"]
-
-    def __new__(cls, elements, attr_name):
+    def __new__(cls, elements):
         return super().__new__(cls, elements)
 
-    def __init__(self, elements, attr_name):
+
+class FBSItemsElementsGroup(tuple):
+
+    __slots__ = ["attr_name"]
+    object_pool = {}
+
+    def __new__(cls, attr_name, items_group, elements_group):
+        if not isinstance(items_group, FBSItemGroup):
+            raise TypeError("items_group must be an FBSItemGroup")
+        if not isinstance(elements_group, FBSElementGroup):
+            raise TypeError("elements_group must be an FBSElementGroup")
+        tup = (items_group, elements_group)
+        if tup in FBSItemsElementsGroup.object_pool:
+            return FBSItemsElementsGroup.object_pool[tup]
+        else:
+            obj = super().__new__(cls, tup)
+            FBSItemsElementsGroup.object_pool[obj] = obj
+            return obj
+
+    def __init__(self, attr_name, items_group, elements_group):
         self.attr_name = attr_name
 
 
@@ -65,14 +78,18 @@ class FBSMunger:
 
     """
 
+    # We want to extract production and consumption.
+    # Production consists in one element and a group of items.
+    # Consumption consits in a group of elements and a group
+    # of items.
+
     def __init__(self, political_rectifier):
         self.years = None
         self.items = set()
         self.elements = set()
-        self.element_attrs = set()
-        self.element_groups = set()
-        self.element_conversions = {}
-        self.element_group_conversions = {}
+        self.item_element_conversions = {}
+        self.items_elements_groups = set()
+        self.items_elements_groups_conversions = {}
         self.political_rectifier = political_rectifier
 
     def set_years(self, years):
@@ -85,36 +102,40 @@ class FBSMunger:
         for item in items:
             self.add_item(item)
 
-    def add_element(self, element, mk_attr=False):
+    def set_item_element_conversion(self, item, element, conversion):
+        if not isinstance(item, FBSItem):
+            raise TypeError("item must be a FBSItem")
+        if not isinstance(element, FBSElement):
+            raise TypeError("element must be an FBSElement")
+        if not callable(conversion):
+            raise TypeError("conversion must be callable")
+        key = (item, element)
+        self.item_element_conversions[key] = conversion
+
+    def add_element(self, element):
         self.elements.add(element)
-        if mk_attr:
-            self.element_attrs.add(element)
 
     def add_elements(self, elements):
         for element in elements:
             self.add_element(element)
 
-    def add_element_group(self, group):
-        self.element_groups.add(group)
-        self.add_elements(group)
+    def add_items_elements_group(self, items_group, elements_group):
+        self.add_items(self, items_group)
+        self.add_elements(self, elements_group)
+        self.items_elements_groups.add((items_group, elements_group))
 
-    def add_element_groups(self, groups):
-        for group in groups:
-            self.add_element_group(group)
-
-    def set_element_conversion(self, element, conversion):
-        if not isinstance(element, FBSElement):
-            raise TypeError("element must be an FBSElement")
+    def set_items_elements_group_conversion(self,
+                                            items_group,
+                                            elements_group,
+                                            conversion):
+        if not isinstance(items_group, FBSItemGroup):
+            raise TypeError("items_group must be an FBSItemGroup")
+        if not isinstance(elements_group, FBSElementGroup):
+            raise TypeError("elements_group must be an FBSElementGroup")
         if not callable(conversion):
-            raise TypeError("conversion must be a callable.")
-        self.element_conversions[element] = conversion
-
-    def set_element_group_conversion(self, group, conversion):
-        if not isinstance(group, FBSElementGroup):
-            raise TypeError("group must be an FBSElementGroup")
-        if not callable(conversion):
-            raise TypeError("conversion must be a callable.")
-        self.element_group_conversions[group] = conversion
+            raise TypeError("conversion must be a callable")
+        key = (items_group, elements_group)
+        self.items_elements_groups_conversions[key] = conversion
 
     def munge(self):
         """
@@ -122,41 +143,44 @@ class FBSMunger:
         """
         data = self.get_raw_data()
 
-        # Apply the element-wise conversions.
-        for political_entity, items in data.items():
+        # Apply the item-element conversions.
+        for country, items in data.items():
             for item, elements in items.items():
                 for element, years in elements.items():
                     mean = sum(years.values()) / len(self.years)
-                    func = self.element_conversions.get(item, lambda x: x)
+                    func = self.item_element_conversions.get(
+                        key,
+                        lambda x: x
+                    )
                     value = func(mean)
                     elements[element] = value
 
-                    if element in self.element_attrs:
-                        name, _ = item
-                        self.set_network_node_attr(political_entity,
-                                                   name,
-                                                   value)
+        # Apply items-elements groups conversions.
+        for group in self.items_elements_groups:
+            items, elements = group
+            for country, citems in data.items():
+                for item, elements in citems.items():
+                    if not item in items:
+                        continue
 
-        # Apply the group-wise conversions.
-        for group in self.element_groups:
-            for political_entity, items in data.items():
-                for item, elements in items.items():
-                    func = self.element_group_conversions.get(
+                    func = self.items_elements_groups_conversions.get(
                         group,
                         lambda x: sum(x.values())
                     )
-                    value = func({element: elements[element]
-                                  for element in elements
-                                  if element in group})
-                    self.set_network_node_attr(political_entity,
-                                               group.attr_name,
+
+                    args = {(item, element): elements[element]
+                            for element in elements}
+
+                    value = func(args)
+                    self.set_network_node_attr(country,
+                                               group.attr_name
                                                value)
 
     def get_raw_data(self):
         """
         Return a dict of country data for the selected items and years.
 
-        The dict is four dimensional keying on Area Code, Item, Element
+        The dict is four dimensional keying on Country, Item, Element
         and Year.
         """
         data_path = os.path.join(FAOSTAT_DIR,
@@ -196,8 +220,12 @@ class FBSMunger:
                 if not year_values:
                     continue
 
-                political_entity = row["Area Code"]
-                item_dict = data.setdefault(political_entity, {})
+                country = FAOCountry(
+                    row["Area"],
+                    row["Area Code"]
+                )
+
+                item_dict = data.setdefault(country, {})
                 elem_dict = item_dict.setdefault(item, {})
                 year_dict = elem_dict.setdefault(element, {})
 
