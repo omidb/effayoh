@@ -1,10 +1,11 @@
 """
-Provides the base model data mungers.
+Provides a DTMMunger configured in accordance with the base Marchand
+model.
 
-In the original Marchand paper Germ of Wheat was included in the
-analysis. This does not, however, appear in the data I downloaded.
+Several of the items listed in the Marchand paper do not appear in the
+data used in development.
+
 """
-
 from effayoh.mungers.dtm import (
     DTMItem, DTMItemGroup, DTMElement, DTMMunger
 )
