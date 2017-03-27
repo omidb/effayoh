@@ -105,7 +105,7 @@ calories_per_ton = {
     FLOUR_OF_CEREALS: 3.64,
     CEREAL_PREPARATIONS_NES: 3.64,
     MIXES_AND_DOUGHS: 3.93,
-    FOOD_PREP_FLOUR_MALT_EXTRACT: 3.77)
+    FOOD_PREP_FLOUR_MALT_EXTRACT: 3.77
 }
 
 
@@ -139,7 +139,7 @@ calorie_cereals_exports = (
 class BaseDTMMunger(DTMMunger):
 
     def __init__(self, political_rectifier):
-        super().__init__(self, political_rectifier)
+        super().__init__(political_rectifier)
 
         element, attr_name, items, conversion = calorie_cereals_exports
         items_group = DTMItemGroup(attr_name, items)
