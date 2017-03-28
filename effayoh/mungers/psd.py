@@ -8,20 +8,21 @@ collection of commodities by an attribute.
 import os
 import csv
 
-from util import PSD_DIR
+from effayoh.util import PSD_DIR
 
 
-class PSDCommodity(str):
+class PSDCommodity(tuple):
 
     __slots__ = []
     object_pool = {}
 
-    def __new__(cls, code):
-        if code in PSDCommodity.object_pool:
-            return PSDCommodity.object_pool[code]
+    def __new__(cls, code, desc):
+        tup = (code, desc)
+        if tup in PSDCommodity.object_pool:
+            return PSDCommodity.object_pool[tup]
         else:
-            psd_commodity = super().__new__(cls, code)
-            PSDCommodity.object_pool[code] = psd_commodity
+            psd_commodity = super().__new__(cls, tup)
+            PSDCommodity.object_pool[psd_commodity] = psd_commodity
             return psd_commodity
 
 
@@ -32,7 +33,7 @@ class PSDCommodityGroup(frozenset):
     def __new__(cls, commodities, attr_name):
         return super().__new__(cls, commodities)
 
-    def __init__(self, attr_name):
+    def __init__(self, commodities, attr_name):
         self.attr_name = attr_name
 
 
@@ -75,12 +76,26 @@ class PSDMunger:
         self.years = None
         self.attributes = set()
         self.commodities = set()
+        self.attribute_commodity_conversion = {}
         self.attribute_commodities_groups = set()
         self.attribute_commodities_group_conversions = {}
         self.political_rectifier = political_rectifier
 
-    def self.set_years(self, years):
+    def set_years(self, years):
         self.years = years
+
+    def set_attribute_commodity_conversion(self,
+                                           attribute,
+                                           commodity,
+                                           conversion):
+        if not isinstance(attribute, PSDAttribute):
+            raise TypeError("attribute must be an instance of PSDAttribute")
+        if not isinstance(commodity, PSDCommodity):
+            raise TypeError("commodity must be an instance of PSDCommodity")
+        if not callable(conversion):
+            raise TypeError("conversion must be a callable")
+        key = (attribute, commodity)
+        self.attribute_commodity_conversion[key] = conversion
 
     def add_attribute_commodities_group(self, attribute, commodities_group):
         if not isinstance(attribute, PSDAttribute):
@@ -110,6 +125,8 @@ class PSDMunger:
         """
         data = self.get_raw_data()
 
+        # Apply the (attribute, commodity) conversions.
+
         # Apply the (attribute, commodities-group) conversions.
         for attribute, cm_group in self.attribute_commodities_groups:
             for country, attributes in data.items():
@@ -121,7 +138,13 @@ class PSDMunger:
                         if cm in cm_group}
                 func = self.attribute_commodities_group_conversions.get(
                     (attribute, cm_group),
-                    lambda x: sum(x.values())
+                    # If no (attribute, commodities-group) conversion
+                    # is available, the default conversion unpacks the
+                    # 2-key (commodity, year) dict and sums its values.
+                    lambda x: sum([
+                        val for years in x.values()
+                            for val in years.values()
+                    ])
                 )
                 value = func(args)
                 self.set_network_node_attr(
@@ -154,7 +177,10 @@ class PSDMunger:
                 if not attribute in self.attributes:
                     continue
 
-                commodity = PSDCommodity(row["Commodity_Code"])
+                commodity = PSDCommodity(
+                    code=row["Commodity_Code"],
+                    desc=row["Commodity_Description"]
+                )
                 if not commodity in self.commodities:
                     continue
 
