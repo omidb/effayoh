@@ -127,11 +127,11 @@ ITEMS = [
 
 FOOD = FBSElement(element="Food", code="5142")
 FEED = FBSElement(element="Feed", code="5521")
-SEED = FBSElement(element="Food", code="5527")
-PROCESSING = FBSElement(element="Food", code="5131")
-WASTE = FBSElement(element="Food", code="5123")
-OTHER = FBSElement(element="Food", code="5154")
-PRODUCTION = FBSElement(element="Food", code="5511")
+SEED = FBSElement(element="Seed", code="5527")
+PROCESSING = FBSElement(element="Processing", code="5131")
+WASTE = FBSElement(element="Waste", code="5123")
+OTHER = FBSElement(element="Other uses", code="5154")
+PRODUCTION = FBSElement(element="Production", code="5511")
 
 ELEMENTS = [
     FOOD,
@@ -217,7 +217,7 @@ item_element_conversions = {
     (INFANT_FOOD, PROCESSING): 3.68*1000.0,
     (INFANT_FOOD, WASTE): 3.68*1000.0,
     (INFANT_FOOD, OTHER): 3.68*1000.0,
-    (INFANT_FOOD, PRODUCTION): 3.68*1000.0,
+    (INFANT_FOOD, PRODUCTION): 3.68*1000.0
 }
 
 
@@ -236,9 +236,11 @@ class BaseFBSMunger(FBSMunger):
     )
 
     def __init__(self, political_rectifier):
-        super().__init__(self, political_rectifier)
+        super().__init__(political_rectifier)
 
         self.add_items_elements_group(BaseFBSMunger.consumption)
         self.add_items_elements_group(BaseFBSMunger.production)
-        for (item, element), conversion in item_element_conversions.items():
-            self.set_item_element_conversion(item, element, conversion)
+        for (item, element), factor in item_element_conversions.items():
+            self.set_item_element_conversion(item,
+                                             element,
+                                             lambda x: x*factor)
