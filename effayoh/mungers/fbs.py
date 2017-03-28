@@ -6,6 +6,7 @@ import csv
 
 from effayoh.util import FAOSTAT_DIR
 from effayoh.mungers import FAOCountry
+from effayoh.resources.faostat import map as map_
 
 
 class FBSItem(tuple):
@@ -50,26 +51,33 @@ class FBSElementGroup(frozenset):
         return super().__new__(cls, elements)
 
 
-class FBSItemsElementsGroup(tuple):
+class FBSItemsElementsGroup:
 
-    __slots__ = ["attr_name"]
+    __slots__ = ["attr_name", "items", "elements"]
     object_pool = {}
 
     def __new__(cls, attr_name, items_group, elements_group):
+        if not isinstance(attr_name, str):
+            raise TypeError("attr_name must be a str")
         if not isinstance(items_group, FBSItemGroup):
             raise TypeError("items_group must be an FBSItemGroup")
         if not isinstance(elements_group, FBSElementGroup):
             raise TypeError("elements_group must be an FBSElementGroup")
-        tup = (items_group, elements_group)
+        tup = (attr_name, items_group, elements_group)
         if tup in FBSItemsElementsGroup.object_pool:
             return FBSItemsElementsGroup.object_pool[tup]
         else:
-            obj = super().__new__(cls, tup)
-            FBSItemsElementsGroup.object_pool[obj] = obj
+            obj = super().__new__(cls)
+            FBSItemsElementsGroup.object_pool[tup] = obj
             return obj
 
     def __init__(self, attr_name, items_group, elements_group):
         self.attr_name = attr_name
+        self.items = items_group
+        self.elements = elements_group
+
+    def __hash__(self):
+        return hash((self.attr_name, self.items, self.elements))
 
 
 class FBSMunger:
@@ -119,10 +127,10 @@ class FBSMunger:
         for element in elements:
             self.add_element(element)
 
-    def add_items_elements_group(self, items_group, elements_group):
-        self.add_items(self, items_group)
-        self.add_elements(self, elements_group)
-        self.items_elements_groups.add((items_group, elements_group))
+    def add_items_elements_group(self, group):
+        self.add_items(group.items)
+        self.add_elements(group.elements)
+        self.items_elements_groups.add(group)
 
     def set_items_elements_group_conversion(self,
                                             items_group,
@@ -148,6 +156,7 @@ class FBSMunger:
             for item, elements in items.items():
                 for element, years in elements.items():
                     mean = sum(years.values()) / len(self.years)
+                    key = (item, element)
                     func = self.item_element_conversions.get(
                         key,
                         lambda x: x
@@ -157,24 +166,27 @@ class FBSMunger:
 
         # Apply items-elements groups conversions.
         for group in self.items_elements_groups:
-            items, elements = group
+            gitems, gelements = group.items, group.elements
             for country, citems in data.items():
-                for item, elements in citems.items():
-                    if not item in items:
+                func = self.items_elements_groups_conversions.get(
+                    group,
+                    lambda x: sum(x.values())
+                )
+
+                args = {}
+                for gitem in gitems:
+                    if not gitem in citems:
                         continue
+                    for gelement in gelements:
+                        if not gelement in citems[gitem]:
+                            continue
+                        key = (gitem, gelement)
+                        args[key] = citems[gitem][gelement]
 
-                    func = self.items_elements_groups_conversions.get(
-                        group,
-                        lambda x: sum(x.values())
-                    )
-
-                    args = {(item, element): elements[element]
-                            for element in elements}
-
-                    value = func(args)
-                    self.set_network_node_attr(country,
-                                               group.attr_name
-                                               value)
+                value = func(args)
+                self.set_network_node_attr(country,
+                                           group.attr_name,
+                                           value)
 
     def get_raw_data(self):
         """
@@ -188,7 +200,7 @@ class FBSMunger:
                                  "FoodBalanceSheets_E_All_Data.csv")
 
         data = {}
-        years_fields = [(year, "Y" + str(year)) for year in years]
+        years_fields = [(year, "Y" + str(year)) for year in self.years]
 
         with open(data_path, encoding="latin1") as csv_file:
 
@@ -217,7 +229,7 @@ class FBSMunger:
                     except ValueError as ve:
                         pass
 
-                if not year_values:
+                if not years_values:
                     continue
 
                 country = FAOCountry(
@@ -225,11 +237,16 @@ class FBSMunger:
                     row["Area Code"]
                 )
 
+                if not country in map_:
+                    msg = "FAOCountry {} is not mapped."
+                    print(msg.format(country))
+                    continue
+
                 item_dict = data.setdefault(country, {})
                 elem_dict = item_dict.setdefault(item, {})
                 year_dict = elem_dict.setdefault(element, {})
 
-                for year, value in year_values:
+                for year, value in years_values:
                     year_dict[year] = value
 
         self.data = data
