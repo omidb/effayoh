@@ -115,7 +115,7 @@ def calorie_cereals_exports_converter(item_tons):
     """
     item_calories = {
         item: item_tons[item]*calories_per_ton[item]
-              for item in item_values
+              for item in item_tons
     }
     return sum(item_calories.values())
 
