@@ -22,6 +22,7 @@ import csv
 
 from effayoh.util import FAOSTAT_DIR
 from effayoh.mungers import FAOCountry
+from effayoh.resources.faostat import map as map_
 
 
 class DTMItem(tuple):
@@ -103,11 +104,16 @@ class DTMMunger:
             raise TypeError("conversion must be a callable")
         self.item_element_conversions[(item, element)] = conversion
 
+    def add_element(self, element):
+        self.elements.add(element)
+
     def add_element_items_group(self, element, items_group):
         if not isinstance(element, DTMElement):
             raise TypeError("element must be a DTMElement")
         if not isinstance(items_group, DTMItemGroup):
             raise TypeError("items_group must be a DTMItemGroup")
+        self.add_element(element)
+        self.add_items(items_group)
         self.element_items_groups.add((element, items_group))
 
     def set_element_items_group_conversion(self,
@@ -247,7 +253,7 @@ class DTMMunger:
                     except ValueError as ve:
                         pass
 
-                if not year_values:
+                if not years_values:
                     continue
 
                 reporter_country = FAOCountry(
@@ -260,13 +266,16 @@ class DTMMunger:
                     row["Partner Country Code"]
                 )
 
+                if not (reporter_country in map_ and partner_country in map_):
+                    continue
+
                 partners_dict = data.setdefault(reporter_country, {})
                 element_dict = partners_dict.setdefault(partner_country, {})
                 item_dict = element_dict.setdefault(element, {})
                 years_dict = item_dict.setdefault(item, {})
 
-                for year, value in year_values:
-                    year_dict[year] = value
+                for year, value in years_values:
+                    years_dict[year] = value
 
         self.data = data
 
