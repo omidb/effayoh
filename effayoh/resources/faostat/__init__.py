@@ -2,10 +2,9 @@ from effayoh.rectification.political_entities import FAOPolitEnt
 from effayoh.mungers import FAOCountry
 
 map = {
-    FAOCountry("Afganistan", "2"): FAOPolitEnt.AFGHANISTAN,
+    FAOCountry("Afghanistan", "2"): FAOPolitEnt.AFGHANISTAN,
     FAOCountry("Albania", "3"): FAOPolitEnt.ALBANIA,
     FAOCountry("Algeria", "4"): FAOPolitEnt.ALGERIA,
-    FAOCountry("American Samoa", "5"): FAOPolitEnt.AMERICAN_SAMOA,
     FAOCountry("Andorra", "6"): FAOPolitEnt.ANDORRA,
     FAOCountry("Angola", "7"): FAOPolitEnt.ANGOLA,
     FAOCountry("Anguilla", "258"): FAOPolitEnt.ANGUILLA,
