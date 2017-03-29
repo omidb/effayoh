@@ -123,7 +123,7 @@ def calorie_cereals_exports_converter(item_tons):
 # Base element-items group of the model.
 calorie_cereals_exports = (
     EXPORT_TONNES,  # element
-    "Calorie cereals exports",  # attribute name
+    "exports",  # attribute name
     (WHEAT, FLOUR_OF_WHEAT, MACARONI, BREAD, BULGUR,
      PASTRY, RICE, BREAKFAST_CEREALS, BARLEY, BARLEY_PEARLED,
      MALT, MAIZE, GERM_OF_MAIZE, FLOUR_OF_MAIZE, POPCORN,
