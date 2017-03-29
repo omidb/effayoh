@@ -130,13 +130,16 @@ class PoliticalRectifier:
             self.effpent_to_mpent[effpent] = mpent
             return mpent
 
-    def rectify(self, effpent):
+    def rectify(self, politent):
         """
         Return the network node that represents this effpent.
         """
-        mpent = self.get_model_politent(effpent)
-        if not isinstance(mpent, ModelPent):
-            raise RectificationError("Cannot rectify non ModelPent instance.")
+        if isinstance(politent, FAOPolitEnt):
+            mpent = self.get_model_politent(effpent)
+        else:
+            mpent = politent
+        if not isinstance(mpent, ModelPolitent):
+            raise RectificationError("Cannot rectify non ModelPolitent instance.")
         elif isinstance(mpent, CompoundPoliticalEntity):
             raise RectificationError("Cannot rectify CompoundPoliticalEntity")
         elif isinstance(mpent, ComponentPoliticalEntity):
@@ -147,45 +150,49 @@ class PoliticalRectifier:
         else:
             name = mpent.name
             self.network.add_node(name)
-            node = self.network[name]
+            node = self.network.node[name]
             self.mpent_to_node[name] = node
             return self.mpent_to_node[name]
 
-    def set_network_edge(self, source, dest, name, value):
+    def set_network_edge(self, data_source, data_dest, name, value):
         """
         Rectify and add the edge name with value to the network.
         """
-        # TODO: Change effpents to mpents.
-        effpent_source = self.get_effayoh_politent(source)
-        effpent_dest = self.get_effayoh_politent(dest)
+        mpent_source = self.get_model_politent(data_source)
+        mpent_dest = self.get_model_politent(data_dest)
 
-        if isinstance(effpent_source, CompoundPoliticalEntity) and\
-           isinstance(effpent_dest, CompoundPoliticalEntity):
+        if isinstance(mpent_source, CompoundPoliticalEntity) and\
+           isinstance(mpent_dest, CompoundPoliticalEntity):
             _set_network_edge_compound_to_compound(
-                effpent_source,
-                effpent_dest,
+                mpent_source,
+                mpent_dest,
                 name,
                 value
             )
-        elif isinstance(effpent_source, CompoundPoliticalEntity):
+        elif isinstance(mpent_source, CompoundPoliticalEntity):
             _set_network_edge_compound_source(
-                effpent_source,
-                effpent_dest,
+                mpent_source,
+                mpent_dest,
                 name,
                 value
             )
-        elif isinstance(effpent_dest, CompoundPoliticalEntity):
+        elif isinstance(mpent_dest, CompoundPoliticalEntity):
             _set_network_edge_compound_dest(
-                effpent_source,
-                effpent_dest,
+                mpent_source,
+                mpent_dest,
                 name,
                 value
             )
         else:
-            # Make sure that nodes exist in the graph.
-            source_node = self.rectify(source)
-            dest_node = self.rectify(dest)
-            self.network.add_edge(source.name, dest.name, name, value)
+            # In this case, both model political entities are Whole
+            # political entites and the key of the corresponding network
+            # node is given by their name attributes.
+            kwargs = {name: value}
+            self.network.add_edge(
+                mpent_source.name,
+                mpent_dest.name,
+                **kwargs
+            )
 
     def _set_network_edge_compound_to_compound(self, source, dest, name, value):
         """
@@ -243,13 +250,13 @@ class PoliticalRectifier:
         #
         # If it is a component, look up its corresponding node and
         # accumulate value.
-        effpent = self.get_effayoh_politent(data_politent)
-        if isinstance(effpent, WholePoliticalEntity):
-            self._set_network_node_attr_whole(effpent, name, value)
-        elif isinstance(effpent, ComponentPoliticalEntity):
-            self._set_network_node_attr_component(effpent, name, value)
-        elif isinstance(effpent, CompoundPoliticalEntity):
-            self._set_network_node_attr_compound(effpent, name, value)
+        mpent = self.get_model_politent(data_politent)
+        if isinstance(mpent, WholePoliticalEntity):
+            self._set_network_node_attr_whole(mpent, name, value)
+        elif isinstance(mpent, ComponentPoliticalEntity):
+            self._set_network_node_attr_component(mpent, name, value)
+        elif isinstance(mpent, CompoundPoliticalEntity):
+            self._set_network_node_attr_compound(mpent, name, value)
         else:
             raise TypeError("politent must be a political entity")
 
@@ -270,7 +277,7 @@ class PoliticalRectifier:
     def _set_network_node_attr_compound(self, politent, name, value):
         politent.distribute_node_attr(name, value)
 
-    def register_effayoh_component_group(self, group):
+    def register_model_component_group(self, group):
         """
         Register the ComponentPoliticalEntityGroup group with this
         rectifier.
@@ -301,7 +308,7 @@ class PoliticalRectifier:
             self.component_political_entities[component] = group
             self.mpent_to_node[group] = node
 
-    def register_effayoh_compound_political_entity(self, compound):
+    def register_model_compound_politent(self, compound):
         """
         Register compound political entity with this rectifier.
 
