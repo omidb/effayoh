@@ -43,7 +43,7 @@ class MarchandModelBuilder:
         """
         Set the years on the model and data mungers.
         """
-        pass
+        self.years = years
 
     def register_data_source(self,
                              munger_class,
