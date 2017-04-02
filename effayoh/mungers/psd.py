@@ -73,13 +73,17 @@ class PSDMunger:
     """
 
     def __init__(self, political_rectifier):
+        self.data_path = None
         self.years = None
         self.attributes = set()
         self.commodities = set()
-        self.attribute_commodity_conversion = {}
+        self.attribute_commodity_conversions = {}
         self.attribute_commodities_groups = set()
         self.attribute_commodities_group_conversions = {}
         self.political_rectifier = political_rectifier
+
+    def set_data_path(self, data_path):
+        self.data_path = data_path
 
     def set_years(self, years):
         self.years = years
@@ -95,7 +99,7 @@ class PSDMunger:
         if not callable(conversion):
             raise TypeError("conversion must be a callable")
         key = (attribute, commodity)
-        self.attribute_commodity_conversion[key] = conversion
+        self.attribute_commodity_conversions[key] = conversion
 
     def add_attribute_commodities_group(self, attribute, commodities_group):
         if not isinstance(attribute, PSDAttribute):
@@ -126,6 +130,16 @@ class PSDMunger:
         data = self.get_raw_data()
 
         # Apply the (attribute, commodity) conversions.
+        for country, attributes in data.items():
+            for attribute, commodities in attributes.items():
+                for commodity, years in commodities.items():
+                    mean = sum(years.values()) / len(self.years)
+                    func = self.attribute_commodity_conversions.get(
+                        (attribute, commodity),
+                        lambda x: x
+                    )
+                    value = func(mean)
+                    commodities[commodity] = value
 
         # Apply the (attribute, commodities-group) conversions.
         for attribute, cm_group in self.attribute_commodities_groups:
@@ -141,10 +155,7 @@ class PSDMunger:
                     # If no (attribute, commodities-group) conversion
                     # is available, the default conversion unpacks the
                     # 2-key (commodity, year) dict and sums its values.
-                    lambda x: sum([
-                        val for years in x.values()
-                            for val in years.values()
-                    ])
+                    lambda x: sum(x.values())
                 )
                 value = func(args)
                 self.set_network_node_attr(
@@ -160,7 +171,10 @@ class PSDMunger:
         The dict is four dimensional keyed on country, attribute,
         commodity and year.
         """
-        data_path = os.path.join(PSD_DIR, "psd_alldata-2017-03-15.csv")
+        if self.data_path:
+            data_path = self.data_path
+        else:
+            data_path = os.path.join(PSD_DIR, "psd_alldata-2017-03-15.csv")
 
         data = {}
         years = {str(year): year for year in self.years}
