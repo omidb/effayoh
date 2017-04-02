@@ -241,6 +241,8 @@ class BaseFBSMunger(FBSMunger):
         self.add_items_elements_group(BaseFBSMunger.consumption)
         self.add_items_elements_group(BaseFBSMunger.production)
         for (item, element), factor in item_element_conversions.items():
-            self.set_item_element_conversion(item,
-                                             element,
-                                             lambda x: x*factor)
+            self.set_item_element_conversion(
+                item,
+                element,
+                lambda x, factor=factor: x*factor
+            )

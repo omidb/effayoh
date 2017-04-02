@@ -59,9 +59,11 @@ class BasePSDMunger(PSDMunger):
 
         # Add attribute element conversions.
         for (commodity, attribute), factor in item_attribute_factor.items():
-            self.set_attribute_commodity_conversion(attribute,
-                                                    commodity,
-                                                    lambda x: factor*x)
+            self.set_attribute_commodity_conversion(
+                attribute,
+                commodity,
+                lambda x, factor=factor: x*factor
+            )
 
         # Add attribute commodities group.
         self.add_attribute_commodities_group(
