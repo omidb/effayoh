@@ -60,7 +60,7 @@ class MarchandModel:
         production = self.network.node[self.epicenter]["production"]
         self.affected_nodes[self.epicenter] = fp*production
 
-        for i in range(self.max_iterations):
+        for i in range(1, self.max_iterations+1):
             print("Executing iteration {i}".format(i=i))
             self.update_params()
             self.affected_edges = {}
@@ -87,6 +87,12 @@ class MarchandModel:
                     self.affected_nodes[v] += abs(inc)
                 else:
                     self.affected_nodes[v] = abs(inc)
+            if v in adjustments:  # u is shocked
+                inc = adjustments[v]
+                if u in self.affected_nodes:
+                    self.affected_nodes[u] += abs(inc)
+                else:
+                    self.affected_nodes[u] = abs(inc)
 
             edge_data["exports"] += sum(adjustments.values())
 
@@ -126,6 +132,13 @@ class MarchandModel:
                 continue
             Tvol += data["exports"]
 
+        if Tvol == 0.0:  # This node is has no trade.
+            dC += shock
+            self.network.node[node]["reserves"] -= dR
+            self.network.node[node]["consumption"] -= dC
+            self.network.node[node]["supply"] -= (dR + dC)
+            return
+
         Tshock = min(shock, Tvol)
         if shock > Tshock:
             shock -= Tshock
@@ -135,7 +148,7 @@ class MarchandModel:
         export_links = self.network.out_edges_iter(nbunch=[node], data=True)
         for u, v, data in export_links:
             self.affected_edges[(u, v)] = data
-            adjustment = -(shock*data["exports"]/Tvol)
+            adjustment = -(Tshock*data["exports"]/Tvol)
             if "adjustments" in data:
                 data["adjustments"][u] = adjustment
             else:
@@ -145,7 +158,7 @@ class MarchandModel:
         import_links = self.network.in_edges_iter(nbunch=[node], data=True)
         for u, v, data in import_links:
             self.affected_edges[(u, v)] = data
-            adjustment = shock*data["exports"]/Tvol
+            adjustment = Tshock*data["exports"]/Tvol
             if "adjustments" in data:
                 data["adjustments"][v] = adjustment
             else:
