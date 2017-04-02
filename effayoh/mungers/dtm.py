@@ -73,6 +73,7 @@ class DTMMunger:
     """
 
     def __init__(self, political_rectifier):
+        self.data_path = None
         self.years = None
         self.items = set()
         self.elements = set()
@@ -81,6 +82,9 @@ class DTMMunger:
         self.element_items_groups = set()
         self.element_items_group_conversions = {}
         self.political_rectifier = political_rectifier
+
+    def set_data_path(self, data_path):
+        self.data_path = data_path
 
     def set_years(self, years):
         self.years = years
@@ -219,9 +223,14 @@ class DTMMunger:
         The dict is five dimensional keyed on: Reporter Country, Partner
         Country, Element, Item and Year.
         """
-        data_path = os.path.join(FAOSTAT_DIR,
-                                 "detailed-trade-matrix",
-                                 "Trade_DetailedTradeMatrix_E_All_Data.csv")
+        if self.data_path:
+            data_path = self.data_path
+        else:
+            data_path = os.path.join(
+                FAOSTAT_DIR,
+                "detailed-trade-matrix",
+                "Trade_DetailedTradeMatrix_E_All_Data.csv"
+            )
 
         data = {}
         years_fields = [(year, "Y" + str(year)) for year in self.years]

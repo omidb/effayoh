@@ -92,6 +92,7 @@ class FBSMunger:
     # of items.
 
     def __init__(self, political_rectifier):
+        self.data_path = None
         self.years = None
         self.items = set()
         self.elements = set()
@@ -99,6 +100,9 @@ class FBSMunger:
         self.items_elements_groups = set()
         self.items_elements_groups_conversions = {}
         self.political_rectifier = political_rectifier
+
+    def set_data_path(self, data_path):
+        self.data_path = data_path
 
     def set_years(self, years):
         self.years = years
@@ -195,9 +199,14 @@ class FBSMunger:
         The dict is four dimensional keying on Country, Item, Element
         and Year.
         """
-        data_path = os.path.join(FAOSTAT_DIR,
-                                 "food-balance-sheets",
-                                 "FoodBalanceSheets_E_All_Data.csv")
+        if self.data_path:
+            data_path = self.data_path
+        else:
+            data_path = os.path.join(
+                FAOSTAT_DIR,
+                "food-balance-sheets",
+                "FoodBalanceSheets_E_All_Data.csv"
+            )
 
         data = {}
         years_fields = [(year, "Y" + str(year)) for year in self.years]
