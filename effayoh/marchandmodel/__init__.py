@@ -58,7 +58,9 @@ class MarchandModel:
         print("Executing the model.")
         self.inject_params()
         production = self.network.node[self.epicenter]["production"]
-        self.affected_nodes[self.epicenter] = fp*production
+        shock = fp*production
+        self.network.node[self.epicenter]["production"] -= shock
+        self.affected_nodes[self.epicenter] = shock
 
         for i in range(1, self.max_iterations+1):
             print("Executing iteration {i}".format(i=i))
@@ -95,6 +97,7 @@ class MarchandModel:
                     self.affected_nodes[u] = abs(inc)
 
             edge_data["exports"] += sum(adjustments.values())
+            edge_data.pop("adjustments")
 
     def node_update(self, node, shock):
         """
@@ -104,7 +107,8 @@ class MarchandModel:
         dR = min(shock, fr*self.network.node[node]["reserves"])
         shock -= dR
         # Absorb some of the shock through consumption.
-        dC = fc*shock
+        max_dC = fc*self.network.node[node]["consumption"]
+        dC = min(max_dC, shock)
         if dC > 0.0:
             self.network.node[node]["shocked"] = True
         shock -= dC
@@ -200,8 +204,8 @@ class MarchandModel:
         for param, value in self.static_params.items():
             if param in globals_:
                 msg = ("Static parameter {param} is already defined "
-                       "in module {__name__}")
-                raise MarchandModelError(msg.format(**locals()))
+                       "you are clobbering a previous value.")
+                print(msg.format(**locals()))
             else:
                 globals_[param] = value
 
