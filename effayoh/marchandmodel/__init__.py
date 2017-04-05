@@ -97,7 +97,14 @@ class MarchandModel:
                     self.affected_nodes[u] = abs(inc)
 
             edge_data["exports"] += sum(adjustments.values())
+
+            if abs(edge_data["exports"]) < 0.001:
+                edge_data.pop("exports")
+
             edge_data.pop("adjustments")
+
+            if not edge_data:
+                self.network.remove_edge(u, v)
 
     def node_update(self, node, shock):
         """
@@ -206,8 +213,8 @@ class MarchandModel:
                 msg = ("Static parameter {param} is already defined "
                        "you are clobbering a previous value.")
                 print(msg.format(**locals()))
-            else:
-                globals_[param] = value
+
+            globals_[param] = value
 
         for param, func in self.dynamic_params.items():
             if param in globals_:
