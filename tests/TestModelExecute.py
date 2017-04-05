@@ -19,7 +19,7 @@ def russian_exports_initializer(network):
     network["RUSSIA"]["USA"]["exports"] = 3000.0
 
 
-def build_model(cascade_version=False):
+def build_model(cascade_version=False, volumes_version=False):
 
     builder = MarchandModelBuilder()
 
@@ -34,9 +34,13 @@ def build_model(cascade_version=False):
     #     country's P.
     # alpha: minimum threshold for a shock to be propagated.
     builder.add_static_param("fc", 0.01)
+    if volumes_version:
+        fp = 6381.547 / 104010.0
+    else:
+        fp = 0.2
     builder.add_static_param("fr", 0.5)
-    builder.add_static_param("fp", 0.2)
-    builder.add_static_param("alpha", 0.001)
+    builder.add_static_param("fp", fp)
+    builder.add_static_param("alpha", 0.0001)
 
     # Register data sources.
     builder.register_data_source(TestBaseDTMMunger, FAOCountry, fao_map)
@@ -59,7 +63,7 @@ def build_model(cascade_version=False):
     return model
 
 
-class TestNetworkSetup(unittest.TestCase):
+class TestModelExecute(unittest.TestCase):
 
     def test_execute(self):
         model = build_model()
@@ -203,6 +207,84 @@ class TestNetworkSetup(unittest.TestCase):
         expected_reserves = 38.602
         expected_consumption = 807476.914
         expected_supply = 111061.89
+
+        russia_data = network.node["RUSSIA"]
+        actual_reserves = russia_data["reserves"]
+        actual_consumption = russia_data["consumption"]
+        actual_supply = russia_data["supply"]
+
+        delta_reserves = abs(expected_reserves - actual_reserves)
+        delta_consumption = abs(expected_consumption - actual_consumption)
+        delta_supply = abs(expected_supply - actual_supply)
+
+        self.assertTrue(delta_reserves < 0.001)
+        self.assertTrue(delta_consumption < 0.001)
+        self.assertTrue(delta_supply < 0.001)
+
+    def test_volumes(self):
+        model = build_model(volumes_version=True)
+        model.set_epicenter("GERMANY")
+        model.execute()
+        network = model.network
+
+        # Verify the state of USA.
+        expected_reserves = 15.545
+        expected_consumption = 208011.967
+        expected_supply = 34717.156
+
+        usa_data = network.node["USA"]
+        actual_reserves = usa_data["reserves"]
+        actual_consumption = usa_data["consumption"]
+        actual_supply = usa_data["supply"]
+
+        delta_reserves = abs(expected_reserves - actual_reserves)
+        delta_consumption = abs(expected_consumption - actual_consumption)
+        delta_supply = abs(expected_supply - actual_supply)
+
+        self.assertTrue(delta_reserves < 0.001)
+        self.assertTrue(delta_consumption < 0.001)
+        self.assertTrue(delta_supply < 0.001)
+
+        # Verify the state of CHINA.
+        expected_reserves = 32.7075
+        expected_consumption = 416040.
+        expected_supply = 69334.1055
+
+        china_data = network.node["CHINA"]
+        actual_reserves = china_data["reserves"]
+        actual_consumption = china_data["consumption"]
+        actual_supply = china_data["supply"]
+
+        delta_reserves = abs(expected_reserves - actual_reserves)
+        delta_consumption = abs(expected_consumption - actual_consumption)
+        delta_supply = abs(expected_supply - actual_supply)
+
+        self.assertTrue(delta_reserves < 0.001)
+        self.assertTrue(delta_consumption < 0.001)
+        self.assertTrue(delta_supply < 0.001)
+
+        # Verify the state of GERMANY.
+        expected_reserves = 46.635
+        expected_consumption = 617819.4
+        expected_supply = 97699.187
+
+        germany_data = network.node["GERMANY"]
+        actual_reserves = germany_data["reserves"]
+        actual_consumption = germany_data["consumption"]
+        actual_supply = germany_data["supply"]
+
+        delta_reserves = abs(expected_reserves - actual_reserves)
+        delta_consumption = abs(expected_consumption - actual_consumption)
+        delta_supply = abs(expected_supply - actual_supply)
+
+        self.assertTrue(delta_reserves < 0.001)
+        self.assertTrue(delta_consumption < 0.001)
+        self.assertTrue(delta_supply < 0.001)
+
+        # Verify the state of RUSSIA.
+        expected_reserves = 83.0985
+        expected_consumption = 832080.
+        expected_supply = 138568.0045
 
         russia_data = network.node["RUSSIA"]
         actual_reserves = russia_data["reserves"]
