@@ -102,6 +102,7 @@ class PoliticalRectifier:
         self.compound_politents = []
         self.mpent_to_node = {}
         self.effpent_to_mpent = {}
+        self.filters = []
 
     def get_effayoh_politent(self, data_politent):
         """
@@ -158,6 +159,10 @@ class PoliticalRectifier:
         """
         Rectify and add the edge name with value to the network.
         """
+        if self.filters_exclude(data_source) or\
+           self.filters_exclude(data_dest):
+                return
+
         mpent_source = self.get_model_politent(data_source)
         mpent_dest = self.get_model_politent(data_dest)
 
@@ -236,21 +241,16 @@ class PoliticalRectifier:
             value:
                 The desired value of the attribute.
         """
-        # Determine from which data source this data originates.
-        #
-        # Map data_politent to its effayoh political entity.
-        #
-        # Look up the type of the effayoh political entity.
-        #
-        # If it is a Whole, look up its node and set the node's
-        # attribute.
-        #
-        # If it is a compound, look up its nodes and apportion value
-        # between them.
-        #
-        # If it is a component, look up its corresponding node and
-        # accumulate value.
+        # Verify this data-defined political entity should be included
+        # in the network.
+        if self.filters_exclude(data_politent):
+            return
+
+        # Look up the corresponding model political entity.
         mpent = self.get_model_politent(data_politent)
+
+        # Determine the type of the model political entity and route
+        # program control to the corresponding method.
         if isinstance(mpent, WholePoliticalEntity):
             self._set_network_node_attr_whole(mpent, name, value)
         elif isinstance(mpent, ComponentPoliticalEntity):
@@ -333,3 +333,11 @@ class PoliticalRectifier:
         else:
             self.compound_politents.append(compound)
             self.effpent_to_mpent[compound.effpent] = compound
+
+    def add_filter(self, filter):
+        self.filters.append(filter)
+
+    def filters_exclude(self, data_politent):
+        """ Return True if data_politent is included in the model. """
+        effpent = self.get_effayoh_politent(data_politent)
+        return any(map(lambda f: f.excludes(effpent), self.filters))
