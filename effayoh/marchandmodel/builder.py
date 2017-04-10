@@ -5,6 +5,10 @@ Provide the MarchandModelBuilder.
 
 import inspect
 
+from effayoh.marchandmodel.base.filters.population_filter import (
+    FAOSTATPopulationFilter
+)
+
 from effayoh.marchandmodel import MarchandModel, MarchandModelError
 from effayoh.marchandmodel.base import policy as base_policy
 
@@ -30,6 +34,7 @@ class MarchandModelBuilder:
     def __init__(self):
         self.years = []
         self.munger_classes = []
+        self.filter_classes = []
         self.politent_maps = {}
         self.model_component_groups = []
         self.model_compound_politents = []
@@ -105,6 +110,9 @@ class MarchandModelBuilder:
 
         self.policy = policy
 
+    def add_filter(self, filter_class):
+        self.filter_classes.append(filter_class)
+
     def setup_base_model(self):
         """
         Setup the base Marchand model.
@@ -125,6 +133,9 @@ class MarchandModelBuilder:
         self.add_static_param("fr", 0.5)
         self.add_static_param("fp", 0.2)
         self.add_static_param("alpha", 0.001)
+
+        # Add the population filter.
+        self.add_filter(FAOSTATPopulationFilter)
 
         # Register data sources.
         self.register_data_source(BaseDTMMunger, FAOCountry, fao_map)
@@ -149,6 +160,11 @@ class MarchandModelBuilder:
                               builder=self)
 
         political_rectifier = model.get_political_rectifier()
+        # Add filters to the political rectifier.
+        for filter_class in self.filter_classes:
+            filter = filter_class()
+            political_rectifier.add_filter(filter)
+
         # Instantiate the data mungers.
         for MungerClass in self.munger_classes:
             munger = MungerClass(political_rectifier)
