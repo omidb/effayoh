@@ -27,12 +27,14 @@ class MarchandModel:
                  static_params,
                  dynamic_params,
                  policy,
+                 recorders,
                  politent_maps,
                  builder):
         self.network = nx.DiGraph()
         self.static_params = static_params
         self.dynamic_params = dynamic_params
         self.policy = policy
+        self.recorders = recorders
         self.builder = builder
         self.political_rectifier = PoliticalRectifier(self.network,
                                                       politent_maps)
@@ -168,6 +170,8 @@ class MarchandModel:
         # Set the amount this node wants to adjust imports by
         import_links = self.network.in_edges_iter(nbunch=[node], data=True)
         for u, v, data in import_links:
+            if self.network.node[u]["shocked"]:
+                continue
             self.affected_edges[(u, v)] = data
             adjustment = Tshock*data["exports"]/Tvol
             if "adjustments" in data:
@@ -235,7 +239,8 @@ class MarchandModel:
             globals_[param] = func(model)
 
     def apply_recorders(self):
-        pass
+        for recorder in self.recorders:
+            recorder.record(self.network)
 
     def set_epicenter(self, country):
         self.epicenter = country

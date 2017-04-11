@@ -35,6 +35,7 @@ class MarchandModelBuilder:
         self.years = []
         self.munger_classes = []
         self.filter_classes = []
+        self.recorder_classes = []
         self.politent_maps = {}
         self.model_component_groups = []
         self.model_compound_politents = []
@@ -113,6 +114,9 @@ class MarchandModelBuilder:
     def add_filter(self, filter_class):
         self.filter_classes.append(filter_class)
 
+    def add_recorder(self, recorder_class):
+        self.recorder_classes.append(recorder_class)
+
     def setup_base_model(self):
         """
         Setup the base Marchand model.
@@ -153,9 +157,12 @@ class MarchandModelBuilder:
         """
         Configure, build and return a Marchand model.
         """
+        recorders = [recorder_class() for recorder_class in self.recorder_classes]
+
         model = MarchandModel(self.static_params,
                               self.dynamic_params,
                               self.policy,
+                              recorders,
                               self.politent_maps,
                               builder=self)
 
