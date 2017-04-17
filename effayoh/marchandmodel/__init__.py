@@ -59,6 +59,7 @@ class MarchandModel:
         """
         print("Executing the model.")
         self.inject_params()
+        self.apply_recorders()
         production = self.network.node[self.epicenter]["production"]
         shock = fp*production
         self.network.node[self.epicenter]["production"] -= shock
@@ -182,8 +183,6 @@ class MarchandModel:
         self.network.node[node]["reserves"] -= dR
         self.network.node[node]["consumption"] -= dC
         self.network.node[node]["supply"] -= (dR + dC)
-
-
 
     def set_node_update(self, func):
         raise NotImplementedError()
