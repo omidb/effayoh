@@ -10,8 +10,9 @@ volume recorder records trade for all the countries in the network.
 
 class TradeVolumeRecorder:
 
-    def __init__(self, countries=[]):
-        self.countries = []
+    countries = frozenset()
+
+    def __init__(self):
         self.volumes = []
 
     def record(self, network):
@@ -21,9 +22,18 @@ class TradeVolumeRecorder:
             self.record_all(network)
 
     def record_countries(self, network):
+        """
+        Record total trade for a subset of countries in the network.
+
+        The countries in the TradeVolumeRecorder instance countries
+        attribute must correspond to the names of the nodes in the
+        network which, in the default case, is the name of the
+        corresponding FAOPolitEnt enum constant.
+
+        """
         acc = 0.0
         for u, v, data in network.edges(data=True):
-            if not (u in self.countries and v in self.countries):
+            if not (u in self.countries or v in self.countries):
                 continue
             acc += data["exports"]
         else:
