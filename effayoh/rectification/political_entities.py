@@ -189,6 +189,7 @@ class FAOPolitEnt(enum.Enum):
     SENEGAL = "Senegal"
     SERBIA = "Serbia"
     SERBIA_AND_MONTENEGRO = "Serbia and Montenegro"
+    SEYCHELLES = "Seychelles"
     SIERRA_LEONE = "Sierra Leone"
     SINGAPORE = "Singapore"
     SLOVAKIA = "Slovakia"
