@@ -119,20 +119,23 @@ def calorie_cereals_exports_converter(item_tons):
     }
     return sum(item_calories.values())
 
+ITEMS = (
+    WHEAT, FLOUR_OF_WHEAT, MACARONI, BREAD, BULGUR,
+    PASTRY, RICE, BREAKFAST_CEREALS, BARLEY, BARLEY_PEARLED,
+    MALT, MAIZE, GERM_OF_MAIZE, FLOUR_OF_MAIZE, POPCORN,
+    RYE, OATS, OATS_ROLLED, MILLET, SORGHUM, BUCKWHEAT,
+    FONIO, FLOUR_OF_FONIO, TRITICALE, CANARY_SEED,
+    MIXED_GRAIN, FLOUR_OF_MIXED_GRAIN, INFANT_FOOD, WAFERS,
+    FLOUR_OF_CEREALS, CEREAL_PREPARATIONS_NES, MIXES_AND_DOUGHS,
+    FOOD_PREP_FLOUR_MALT_EXTRACT
+)
 
 # Base element-items group of the model.
 calorie_cereals_exports = (
     EXPORT_TONNES,  # element
     "exports",  # attribute name
-    (WHEAT, FLOUR_OF_WHEAT, MACARONI, BREAD, BULGUR,
-     PASTRY, RICE, BREAKFAST_CEREALS, BARLEY, BARLEY_PEARLED,
-     MALT, MAIZE, GERM_OF_MAIZE, FLOUR_OF_MAIZE, POPCORN,
-     RYE, OATS, OATS_ROLLED, MILLET, SORGHUM, BUCKWHEAT,
-     FONIO, FLOUR_OF_FONIO, TRITICALE, CANARY_SEED,
-     MIXED_GRAIN, FLOUR_OF_MIXED_GRAIN, INFANT_FOOD, WAFERS,
-     FLOUR_OF_CEREALS, CEREAL_PREPARATIONS_NES, MIXES_AND_DOUGHS,
-     FOOD_PREP_FLOUR_MALT_EXTRACT),  # Tuple of items in the group.
-    calorie_cereals_exports_converter,  # conversion function
+    ITEMS,
+    calorie_cereals_exports_converter  # conversion function
 )
 
 

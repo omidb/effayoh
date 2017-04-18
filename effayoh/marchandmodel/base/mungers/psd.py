@@ -9,7 +9,6 @@ from effayoh.mungers.psd import (
 )
 
 # Define the attribute used in the base Marchand model.
-# The Ending Stocks unit of measurement is 1 ton.
 
 ENDING_STOCKS = PSDAttribute(attr_id="176", desc="Ending Stocks")
 
@@ -39,16 +38,20 @@ COMMODITIES = [
     WHEAT
 ]
 
+# Define (commodity, attribute) conversion factors.
+# The unit of these attributes is 1000 MT so we
+# also multiply by 1000.0.
+
 item_attribute_factor = {
-    (BARLEY, ENDING_STOCKS): 3.32,
-    (CORN, ENDING_STOCKS): 3.56,
-    (MILLET, ENDING_STOCKS): 3.4,
-    (MIXED_GRAIN, ENDING_STOCKS): 3.4,
-    (OATS, ENDING_STOCKS): 3.85,
-    (RICE_MILLED, ENDING_STOCKS): 3.6,
-    (RYE, ENDING_STOCKS): 3.19,
-    (SORGHUM, ENDING_STOCKS): 3.43,
-    (WHEAT, ENDING_STOCKS): 3.34
+    (BARLEY, ENDING_STOCKS): 3.32*1000.0,
+    (CORN, ENDING_STOCKS): 3.56*1000.0,
+    (MILLET, ENDING_STOCKS): 3.4*1000.0,
+    (MIXED_GRAIN, ENDING_STOCKS): 3.4*1000.0,
+    (OATS, ENDING_STOCKS): 3.85*1000.0,
+    (RICE_MILLED, ENDING_STOCKS): 3.6*1000.0,
+    (RYE, ENDING_STOCKS): 3.19*1000.0,
+    (SORGHUM, ENDING_STOCKS): 3.43*1000.0,
+    (WHEAT, ENDING_STOCKS): 3.34*1000.0
 }
 
 
