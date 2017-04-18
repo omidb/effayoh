@@ -41,7 +41,6 @@ map = {
     FAOCountry("Cambodia", "115"): FAOPolitEnt.CAMBODIA,
     FAOCountry("Cameroon", "32"): FAOPolitEnt.CAMEROON,
     FAOCountry("Canada", "33"): FAOPolitEnt.CANADA,
-    FAOCountry("Caribbean", "5206"): FAOPolitEnt.CARIBBEAN,
     FAOCountry("Cayman Islands", "36"): FAOPolitEnt.CAYMAN_ISLANDS,
     FAOCountry("Central African Republic", "37"): FAOPolitEnt.CENTRAL_AFRICAN_REPUBLIC,
     FAOCountry("Chad", "39"): FAOPolitEnt.CHAD,
@@ -187,6 +186,7 @@ map = {
     # We omit 286 Serbia (exc Kosovo) because it does not appear to have
     # an M49 country code.
     FAOCountry("Serbia and Montenegro", "186"): FAOPolitEnt.SERBIA_AND_MONTENEGRO,
+    FAOCountry("Seychelles", "196"): FAOPolitEnt.SEYCHELLES,
     FAOCountry("Sierra Leone", "197"): FAOPolitEnt.SIERRA_LEONE,
     FAOCountry("Singapore", "200"): FAOPolitEnt.SINGAPORE,
     FAOCountry("Slovakia", "199"): FAOPolitEnt.SLOVAKIA,
