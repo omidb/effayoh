@@ -2,6 +2,9 @@
 Provides the PoliticalRectifier class.
 
 """
+
+import logging
+
 from effayoh.rectification.political_entities import FAOPolitEnt
 
 
@@ -59,16 +62,7 @@ class CompoundPoliticalEntity(ModelPolitent):
             node[name] = node.get(name, 0.0) + scale
 
 
-class ComponentPoliticalEntity(ModelPolitent):
-    """
-    An effayoh political entity that is one of two or more effayoh
-    political entities that comprise a network node.
-
-    """
-    pass
-
-
-class ComponentPoliticalEntityGroup(list):
+class ComponentPoliticalEntityGroup(list, ModelPolitent):
     """
     A group of effayoh political entities that comprise a network node.
     """
@@ -77,13 +71,16 @@ class ComponentPoliticalEntityGroup(list):
         self.name = name
         super().__init__(elements)
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 class PoliticalRectifier:
 
     def __init__(self, network, politent_maps):
         """
-        Params:
-
+        Parameters
+        ----------
         network:
             The NetworkX graph instance that is the network of the
             Marchand Model.
@@ -103,11 +100,14 @@ class PoliticalRectifier:
         self.mpent_to_node = {}
         self.effpent_to_mpent = {}
         self.filters = []
+        self.intragroup_resolvers = {}
 
     def get_effayoh_politent(self, data_politent):
         """
         Return the associated FAOPolitEnt of data_politent.
         """
+        if isinstance(data_politent, FAOPolitEnt):
+            return data_politent
         for politent_type in self.politent_maps:
             if type(data_politent) is politent_type:
                 map_ = self.politent_maps[politent_type]
@@ -134,18 +134,18 @@ class PoliticalRectifier:
     def rectify(self, politent):
         """
         Return the network node that represents this effpent.
+
         """
         if isinstance(politent, FAOPolitEnt):
-            mpent = self.get_model_politent(effpent)
+            mpent = self.get_model_politent(politent)
         else:
             mpent = politent
         if not isinstance(mpent, ModelPolitent):
             raise RectificationError("Cannot rectify non ModelPolitent instance.")
         elif isinstance(mpent, CompoundPoliticalEntity):
             raise RectificationError("Cannot rectify CompoundPoliticalEntity")
-        elif isinstance(mpent, ComponentPoliticalEntity):
-            group = self.component_political_entities[effpent]
-            return self.mpent_to_node[group]
+        elif isinstance(mpent, ComponentPoliticalEntityGroup):
+            return self.mpent_to_node[mpent]
         elif mpent in self.mpent_to_node:
             return self.mpent_to_node[mpent]
         else:
@@ -168,21 +168,43 @@ class PoliticalRectifier:
 
         if isinstance(mpent_source, CompoundPoliticalEntity) and\
            isinstance(mpent_dest, CompoundPoliticalEntity):
-            _set_network_edge_compound_to_compound(
+            self._set_network_edge_compound_to_compound(
                 mpent_source,
                 mpent_dest,
                 name,
                 value
             )
         elif isinstance(mpent_source, CompoundPoliticalEntity):
-            _set_network_edge_compound_source(
+            self._set_network_edge_compound_source(
                 mpent_source,
                 mpent_dest,
                 name,
                 value
             )
         elif isinstance(mpent_dest, CompoundPoliticalEntity):
-            _set_network_edge_compound_dest(
+            self._set_network_edge_compound_dest(
+                mpent_source,
+                mpent_dest,
+                name,
+                value
+            )
+        elif isinstance(mpent_source, ComponentPoliticalEntityGroup) and\
+             isinstance(mpent_dest, ComponentPoliticalEntityGroup):
+            self._set_network_edge_component_component(
+                mpent_source,
+                mpent_dest,
+                name,
+                value
+            )
+        elif isinstance(mpent_source, ComponentPoliticalEntityGroup):
+            self._set_network_edge_component_source(
+                mpent_source,
+                mpent_dest,
+                name,
+                value
+            )
+        elif isinstance(mpent_dest, ComponentPoliticalEntityGroup):
+            self._set_network_edge_component_dest(
                 mpent_source,
                 mpent_dest,
                 name,
@@ -253,7 +275,7 @@ class PoliticalRectifier:
         # program control to the corresponding method.
         if isinstance(mpent, WholePoliticalEntity):
             self._set_network_node_attr_whole(mpent, name, value)
-        elif isinstance(mpent, ComponentPoliticalEntity):
+        elif isinstance(mpent, ComponentPoliticalEntityGroup):
             self._set_network_node_attr_component(mpent, name, value)
         elif isinstance(mpent, CompoundPoliticalEntity):
             self._set_network_node_attr_compound(mpent, name, value)
@@ -290,7 +312,13 @@ class PoliticalRectifier:
         fetch its component group.
 
         We also have to create a node for the component group.
+
         """
+        if group.name in self.network:
+            raise RectificationError("Duplicate component group names.")
+        else:
+            self.network.add_node(group.name)
+            node = self.network.node[group.name]
 
         for component in group:
 
@@ -299,14 +327,91 @@ class PoliticalRectifier:
                        "to more than one ComponentPoliticalEntityGroup.")
                 raise RectificationError(msg)
 
-            if group.name in self.network:
-                raise RectificationError("Duplicate component group names.")
-            else:
-                self.network.add_node(group.name)
-                node = network[group.name]
-
             self.component_political_entities[component] = group
             self.mpent_to_node[group] = node
+
+    def _set_network_edge_component_component(self, source, dest, name, value):
+        """
+        Set the attribute name to value on the edge (source, dest).
+
+        This method handles the case when source and dest are instances
+        of ComponentPoliticalEntityGroup. In this case we must be
+        careful to check that source and dest are not in fact the same
+        group.
+
+        """
+        if source is dest:
+            self.resolve_intragroup_edge(source, name, value)
+        else:
+            self._set_network_edge_component_source(source, dest, name, value)
+
+    def _set_network_edge_component_source(self, source, dest, name, value):
+        """
+        Set the attribute name to value on the edge (source, dest).
+
+        This method handles the case when source is an instance of
+        ComponentPoliticalEntityGroup and name is not. Since multiple
+        data-defined entities will be contributing edges to the source,
+        we must take care to accumulate their values.
+
+        """
+        if (source.name, dest.name) in self.network.edges():
+            data = self.network[source.name][dest.name]
+            if name in data:
+                data[name] += value
+            else:
+                data[name] = value
+        else:
+            kwargs = {name: value}
+            self.network.add_edge(
+                source.name,
+                dest.name,
+                **kwargs
+            )
+
+    def _set_network_edge_component_dest(self, source, dest, name, value):
+        """
+        Set the attribute name to value on the edge (source, dest).
+
+        This method handles the case when dest is an instance of
+        ComponentPoliticalEntityGroup and source is not. We must be
+        careful to accumulate the multiple possible edges from source
+        to the various component political entities of the dest.
+
+        """
+        if (source.name, dest.name) in self.network.edges():
+            data = self.network[source.name][dest.name]
+            if name in data:
+                data[name] += value
+            else:
+                data[name] = value
+        else:
+            kwargs = {name: value}
+            self.network.add_edge(
+                source.name,
+                dest.name,
+                **kwargs
+            )
+
+    def resolve_intragroup_edge(self, group, name, value):
+        """
+        Resolve an edge between components within a group.
+
+        """
+        if name in self.intragroup_resolvers:
+            resolver = self.intragroup_resolvers[name]
+            resolver(self.network, group, value)
+        else:
+            msg = (
+                "The PoliticalRecitifer attempted to set an edge that "
+                "is incident upon two political entities in the same "
+                "ComponentPoliticalEntityGroup. No resolver has been "
+                "registered to handle an intragroup edge for the "
+                "attribute {name}. The model build process will "
+                "proceed ignoring the information associated with the "
+                "requested edge."
+            )
+            logging.warning(msg.format(name=name))
 
     def register_model_compound_politent(self, compound):
         """
