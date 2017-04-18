@@ -10,9 +10,10 @@ from effayoh.mungers import FAOCountry
 from effayoh.marchandmodel.base.mungers.dtm import BaseDTMMunger
 from effayoh.resources.faostat import map as fao_map
 from effayoh.marchandmodel.base.mungers.fbs import BaseFBSMunger
-
-from effayoh.mungers.psd import PSDCountry
-from effayoh.marchandmodel.base.mungers.psd import BasePSDMunger
+from effayoh.mungers.psd import PSDCountry, PSDCommodityGroup
+from effayoh.marchandmodel.base.mungers.psd import (
+    item_attribute_factor, ENDING_STOCKS, COMMODITIES
+)
 from effayoh.resources.usda import map as psd_map
 
 
@@ -44,10 +45,29 @@ class TestBaseFBSMunger(BaseFBSMunger):
         self.set_data_path(data_path)
 
 
-class TestBasePSDMunger(BasePSDMunger):
+item_attribute_factor = {
+    key: value/1000.0 for key, value in item_attribute_factor.items()
+}
+
+
+class TestBasePSDMunger(psd.PSDMunger):
 
     def __init__(self, political_rectifier):
         super().__init__(political_rectifier)
+
+        # Add attribute element conversions.
+        for (commodity, attribute), factor in item_attribute_factor.items():
+            self.set_attribute_commodity_conversion(
+                attribute,
+                commodity,
+                lambda x, factor=factor: x*factor
+            )
+
+        # Add attribute commodities group.
+        self.add_attribute_commodities_group(
+            ENDING_STOCKS,
+            PSDCommodityGroup(COMMODITIES, "reserves")
+        )
 
         data_path = os.path.join(RESOURCES_DIR,
                                  "usda",
@@ -147,7 +167,7 @@ class TestNetworkSetup(unittest.TestCase):
     def test_reserves(self):
         """ Test the initial network values for reserves. """
 
-        expected = sum(psd.item_attribute_factor.values())
+        expected = sum(item_attribute_factor.values())
         nodes = self.model.network.node
 
         usa_production = nodes["USA"]["reserves"]
@@ -186,7 +206,4 @@ class TestNetworkSetup(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #unittest.main()
-    model = build_model()
-    model.set_epicenter("USA")
-    model.execute()
+    unittest.main()
