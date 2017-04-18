@@ -122,7 +122,10 @@ class MarchandModelBuilder:
         Setup the base Marchand model.
 
         """
-        self.years = list(range(2005, 2010))
+        # Check self.years so that we do not clobber a client's
+        # specified years.
+        if not self.years:
+            self.years = list(range(2005, 2010))
 
         # Base model parameters. Values taken from the paper
         # introducing the model.
@@ -146,12 +149,15 @@ class MarchandModelBuilder:
         self.register_data_source(BaseFBSMunger, FAOCountry, fao_map)
         self.register_data_source(BasePSDMunger, PSDCountry, psd_map)
 
-        self.add_network_initializer(MarchandModelBuilder.supply_initializer)
         self.add_network_initializer(MarchandModelBuilder.shocked_initializer)
+        self.add_network_initializer(MarchandModelBuilder.reserves_initializer)
+        self.add_network_initializer(
+            MarchandModelBuilder.production_initializer
+        )
         self.add_network_initializer(
             MarchandModelBuilder.consumption_initializer
         )
-        self.add_network_initializer(MarchandModelBuilder.reserves_initializer)
+        self.add_network_initializer(MarchandModelBuilder.supply_initializer)
 
     def build(self):
         """
@@ -169,8 +175,14 @@ class MarchandModelBuilder:
         political_rectifier = model.get_political_rectifier()
         # Add filters to the political rectifier.
         for filter_class in self.filter_classes:
-            filter = filter_class()
+            filter = filter_class(self.years)
             political_rectifier.add_filter(filter)
+
+        for group in self.model_component_groups:
+            political_rectifier.register_model_component_group(group)
+
+        for politent in self.model_compound_politents:
+            political_rectifier.register_model_compound_politent(politent)
 
         # Instantiate the data mungers.
         for MungerClass in self.munger_classes:
@@ -210,6 +222,8 @@ class MarchandModelBuilder:
     def consumption_initializer(network):
         for node, data in network.node.items():
             if not "consumption" in data:
+                msg = "{node} has no consumption data"
+                print(msg.format(node=node))
                 data["consumption"] = 0.0
 
     @staticmethod
@@ -217,3 +231,9 @@ class MarchandModelBuilder:
         for node, data in network.node.items():
             if not "reserves" in data:
                 data["reserves"] = 0.0
+
+    @staticmethod
+    def production_initializer(network):
+        for node, data in network.node.items():
+            if not "production" in data:
+                data["production"] = 0.0
