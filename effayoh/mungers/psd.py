@@ -133,7 +133,7 @@ class PSDMunger:
         for country, attributes in data.items():
             for attribute, commodities in attributes.items():
                 for commodity, years in commodities.items():
-                    mean = sum(years.values()) / len(self.years)
+                    mean = sum(years.values()) / len(years)
                     func = self.attribute_commodity_conversions.get(
                         (attribute, commodity),
                         lambda x: x

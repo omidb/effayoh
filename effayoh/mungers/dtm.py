@@ -176,7 +176,7 @@ class DTMMunger:
                     for item, years in items.items():
                         # Items in element-items groups will also be
                         # processed to obtain value here.
-                        mean = sum(years.values()) / len(self.years)
+                        mean = sum(years.values()) / len(years)
                         func = self.item_element_conversions.get(
                             (item, element),
                             lambda x: x
@@ -258,7 +258,8 @@ class DTMMunger:
                 for year, field in years_fields:
                     try:
                         value = float(row[field])
-                        years_values.append((year, value))
+                        if value > 0.0:
+                            years_values.append((year, value))
                     except ValueError as ve:
                         pass
 

@@ -159,7 +159,7 @@ class FBSMunger:
         for country, items in data.items():
             for item, elements in items.items():
                 for element, years in elements.items():
-                    mean = sum(years.values()) / len(self.years)
+                    mean = sum(years.values()) / len(years)
                     key = (item, element)
                     func = self.item_element_conversions.get(
                         key,
