@@ -513,3 +513,5 @@ effpent_to_iso = {
 }
 
 iso_to_effpent = {value: key for key, value in effpent_to_iso.items()}
+
+effpent_name_to_iso = {key.name: value for key, value in effpent_to_iso.items()}
